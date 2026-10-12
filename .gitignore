@@ -1,0 +1,46 @@
+﻿# Environment files and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# SSH keys and certificates
+lla_dashboard_ssh
+lla_dashboard_ssh.pub
+*.pem
+*.key
+
+# Node.js and Expo dependencies
+node_modules/
+**/node_modules/
+.expo/
+**/.expo/
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Backups and logs
+backup/
+backups/
+**/backup/
+**/backups/
+*.log
+
+# Database backups and exports
+*.dump
+*.backup
+*.sql.gz
+*backup*.sql
+
+# Private certificates and key files
+*.p12
+*.pfx
+
+# Exclude components not needed for the initial web deployment
+/mobile-field-app/
+/backend-sync-update/

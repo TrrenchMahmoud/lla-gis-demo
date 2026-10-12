@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LLA Land Information - Public Summary</title>
+<link rel="manifest" href="/manifest.public.json">
+<meta name="theme-color" content="#0b2545">
+<link rel="icon" href="/assets/icon-192.png">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LLA Registry">
+<script src="/vendor/chart.umd.min.js"></script>
+<style>
+  :root{--navy:#0b2545;--navy2:#13315c;--navy3:#1d4e89;--gold:#d4a72c;--bg:#f4f6f9}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#1f2430}
+  header{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;padding:18px 20px;display:flex;align-items:center;gap:12px}
+  header h1{font-size:17px;margin:0}
+  header p{margin:2px 0 0;font-size:12px;opacity:.8}
+  main{max-width:900px;margin:24px auto;padding:0 16px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+  .card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 10px rgba(11,37,69,.08)}
+  .card b{display:block;font-size:24px;color:var(--navy)}
+  .card span{font-size:12px;color:#64748b}
+  .panel{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 10px rgba(11,37,69,.08);margin-bottom:16px}
+  .panel h2{font-size:14px;margin:0 0 10px;color:var(--navy)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:6px 4px;border-bottom:1px solid #eee}
+  th.num,td.num{text-align:right}
+  .note{font-size:11.5px;color:#888;margin-top:6px}
+  .loading{text-align:center;color:#888;padding:30px 0}
+  a.back{color:#fff;opacity:.85;text-decoration:none;font-size:12px}
+  #installBtn{display:none;background:var(--gold);color:#1f2430;border:0;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-left:10px}
+  #offlineBanner{display:none;background:#fef3c7;color:#7a5d00;font-size:12.5px;padding:8px 16px;text-align:center}
+  .checkBtn{background:var(--navy3);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:13.5px;font-weight:600;cursor:pointer}
+  .checkBtn:disabled{opacity:.6;cursor:default}
+  .locBox{border-radius:8px;padding:12px;font-size:13.5px}
+  .locBox.hit{background:#fdecea;color:#7a1f17;border:1px solid #f3c6c0}
+  .locBox.miss{background:#e6f4ea;color:#1e5a2a;border:1px solid #bfe3c8}
+  .locBox.err{background:#f1f3f6;color:#555;border:1px solid #e2e8f0}
+  .locBox b{display:block;margin-bottom:4px}
+  .locBox ul{margin:6px 0 0;padding-left:18px}
+</style>
+</head>
+<body>
+<header>
+  <div style="flex:1">
+    <h1>LLA Land Information Dashboard - Public Summary</h1>
+    <p>Read-only, aggregate figures. No sign-in required.</p>
+  </div>
+  <a class="back" href="/">Staff sign-in</a>
+  <button id="installBtn">Install app</button>
+</header>
+<div id="offlineBanner">You're offline - showing the last saved figures.</div>
+<main>
+  <div id="loading" class="loading">Loading…</div>
+  <div id="content" style="display:none">
+    <div class="cards">
+      <div class="card"><b id="totalParcels">-</b><span>total parcels mapped</span></div>
+      <div class="card"><b id="totalAcres">-</b><span>total acres</span></div>
+      <div class="card"><b id="pctLiberia">-</b><span>of Liberia's land area</span></div>
+    </div>
+    <div class="panel">
+      <h2>Check your current location</h2>
+      <p class="note" style="margin-top:0">See if where you're standing falls inside land that's already mapped and allocated - useful before settling or developing a plot. This only ever shows whether a spot overlaps a mapped parcel, its approximate size, and which county - never an owner's name or the parcel's exact boundary.</p>
+      <button id="checkLocBtn" class="checkBtn">Check this location</button>
+      <div id="locResult" style="display:none;margin-top:12px"></div>
+    </div>
+    <div class="panel">
+      <h2>By layer</h2>
+      <div style="height:220px"><canvas id="byLayerChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Breakdown</h2>
+      <table>
+        <thead><tr><th>Layer</th><th class="num">Parcels</th><th class="num">Acres</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="note">Figures are aggregate counts only - no owner names, coordinates, or individual parcel boundaries are shown here.</div>
+    </div>
+  </div>
+  <div id="offMsg" style="display:none" class="panel">This public summary isn't turned on right now. Please check back later.</div>
+</main>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("/sw-public.js").catch(()=>{});
+}
+let _deferredInstall=null;
+window.addEventListener("beforeinstallprompt",(e)=>{
+  e.preventDefault();_deferredInstall=e;
+  document.getElementById("installBtn").style.display="inline-block";
+});
+document.getElementById("installBtn").onclick=async()=>{
+  if(!_deferredInstall)return;
+  _deferredInstall.prompt();
+  await _deferredInstall.userChoice;
+  _deferredInstall=null;
+  document.getElementById("installBtn").style.display="none";
+};
+function updateOfflineBanner(){
+  document.getElementById("offlineBanner").style.display=navigator.onLine?"none":"block";
+}
+window.addEventListener("online",updateOfflineBanner);
+window.addEventListener("offline",updateOfflineBanner);
+updateOfflineBanner();
+
+document.getElementById("checkLocBtn").onclick=()=>{
+  const btn=document.getElementById("checkLocBtn");
+  const box=document.getElementById("locResult");
+  if(!("geolocation" in navigator)){
+    box.style.display="block";
+    box.innerHTML='<div class="locBox err">Your browser doesn\'t support location lookup.</div>';
+    return;
+  }
+  btn.disabled=true;btn.textContent="Getting your location…";
+  box.style.display="none";
+  navigator.geolocation.getCurrentPosition(async(pos)=>{
+    const {longitude,latitude}=pos.coords;
+    btn.textContent="Checking…";
+    try{
+      const r=await fetch(`/api/public/check-occupancy?lng=${longitude}&lat=${latitude}`);
+      if(!r.ok) throw new Error("off");
+      const data=await r.json();
+      box.style.display="block";
+      if(data.inside_mapped_parcel){
+        const items=data.matches.map(m=>`<li>${prettyName(m.layer)} - about ${m.area_acres.toLocaleString()} acres${m.county?` (${m.county})`:""}</li>`).join("");
+        box.innerHTML=`<div class="locBox hit"><b>This spot overlaps a mapped parcel</b>It falls inside land already recorded in the system:<ul>${items}</ul></div>`;
+      }else{
+        box.innerHTML='<div class="locBox miss"><b>No mapped parcel here</b>This spot doesn\'t overlap anything currently recorded in the system.</div>';
+      }
+    }catch(e){
+      box.style.display="block";
+      box.innerHTML='<div class="locBox err">Couldn\'t check right now - this needs a connection. Try again when you\'re back online.</div>';
+    }finally{
+      btn.disabled=false;btn.textContent="Check this location";
+    }
+  },(err)=>{
+    box.style.display="block";
+    const msg=err.code===1?"Location access was denied - turn it on for this site to use this check.":"Couldn't get your location. Please try again.";
+    box.innerHTML=`<div class="locBox err">${msg}</div>`;
+    btn.disabled=false;btn.textContent="Check this location";
+  },{enableHighAccuracy:true,timeout:15000});
+};
+
+const LIBERIA_ACRES = 23800000;
+const prettyName=id=>({plsd:"Development Grant",eleemosynary:"Eleemosynary",public_land:"Public Land",customary_land:"Customary Land",government_land:"Government Land"}[id.split(".").pop()]||id);
+(async()=>{
+  try{
+    const r=await fetch("/api/public/summary");
+    if(!r.ok) throw new Error("off");
+    const data=await r.json();
+    document.getElementById("loading").style.display="none";
+    document.getElementById("content").style.display="block";
+    document.getElementById("totalParcels").textContent=data.parcels.toLocaleString();
+    document.getElementById("totalAcres").textContent=Math.round(data.acres).toLocaleString();
+    document.getElementById("pctLiberia").textContent=((data.acres/LIBERIA_ACRES)*100).toFixed(2)+"%";
+    const rows=document.getElementById("rows");
+    rows.innerHTML="";
+    data.by_layer.forEach(l=>{
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${prettyName(l.layer)}</td><td class="num">${l.parcels.toLocaleString()}</td><td class="num">${Math.round(l.acres).toLocaleString()}</td>`;
+      rows.appendChild(tr);
+    });
+    // Chart.js is loaded from a CDN and may not be cached/reachable offline - never let a
+    // missing chart library block the cards/table above, which is the info that matters most.
+    try{
+      if(typeof Chart==="undefined")throw new Error("Chart.js not loaded");
+      const canvas=document.getElementById("byLayerChart");
+      if(window._byLayerChart)window._byLayerChart.destroy();
+      window._byLayerChart=new Chart(canvas,{type:"bar",
+        data:{labels:data.by_layer.map(l=>prettyName(l.layer)),datasets:[{label:"Acres",data:data.by_layer.map(l=>l.acres),backgroundColor:"#1d4e89"}]},
+        options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});
+    }catch(chartErr){
+      document.getElementById("byLayerChart").parentElement.innerHTML="<div class=\"note\">Chart unavailable right now - figures are still shown above and in the table below.</div>";
+    }
+  }catch(e){
+    document.getElementById("loading").style.display="none";
+    document.getElementById("offMsg").style.display="block";
+  }
+})();
+</script>
+</body></html>

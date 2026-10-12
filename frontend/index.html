@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLA Land Information Dashboard</title>
+<link rel="icon" href="/assets/lla-logo.jpg">
+<link href="/maplibre-gl.css" rel="stylesheet">
+<script src="/maplibre-gl.js"></script>
+<script src="/chart.js"></script>
+<style>
+:root{
+ --navy:#0b2545; --navy2:#123a6b; --navy3:#1a4a85;
+ --gold:#e8b923; --gold-dk:#b9910f;
+ --red:#c0392b;
+ --ink:#111827;
+}
+html,body{margin:0;height:100%;font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
+#bar{display:none;height:72px;align-items:center;justify-content:space-between;padding:0 20px;
+ background:linear-gradient(120deg,var(--navy),var(--navy2) 65%,var(--navy3));color:#fff;box-sizing:border-box;font-size:14.5px;
+ box-shadow:0 2px 10px rgba(0,0,0,.28);position:relative;z-index:6}
+#bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;
+ background:linear-gradient(90deg,var(--gold),var(--red),var(--gold))}
+#loadBar{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--gold),var(--red));z-index:999;
+ transition:width .25s ease,opacity .3s ease;opacity:0}
+#loadBar.on{opacity:1}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #d8dee8;border-top-color:var(--navy3);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+.loadingRow{display:flex;align-items:center;gap:8px;justify-content:center;color:#888;font-size:12px;padding:14px 0}
+#brand{display:flex;align-items:center;gap:14px}
+#brand img{height:48px;width:48px;border-radius:50%;background:#fff;padding:2px;box-shadow:0 1px 4px rgba(0,0,0,.4);object-fit:cover}
+#brandText{display:flex;flex-direction:column;line-height:1.2}
+#brandText b{font-size:21px;font-weight:800;letter-spacing:.2px}
+#brandText span{font-size:12.5px;color:#cbd5e1;font-weight:600;letter-spacing:.4px}
+#bar div.right{display:flex;align-items:center;gap:16px}
+input,button{padding:5px 8px;font-size:13.5px;border-radius:4px;border:1px solid #444}
+button{background:var(--navy3);color:#fff;border:0;cursor:pointer}
+button:hover{filter:brightness(1.12)}
+#map{position:absolute;top:0;left:0;right:0;bottom:0}
+body.authed #map{top:72px}
+#mapTools{display:none;position:absolute;top:12px;right:12px;z-index:5;gap:8px;flex-direction:column;align-items:flex-end}
+body.authed #mapTools{display:flex;top:98px}
+.mapToolBtn{background:#fff;color:var(--navy);
+ border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;box-shadow:0 2px 10px rgba(11,37,69,.25);cursor:pointer;user-select:none;white-space:nowrap}
+.mapToolBtn.active{background:var(--navy3);color:#fff}
+#measurePanel,#bookmarksPanel{display:none;position:absolute;top:58px;right:12px;z-index:5;background:#fff;border-radius:8px;
+ box-shadow:0 4px 18px rgba(11,37,69,.25);padding:10px 12px;font-size:12.5px;width:200px;box-sizing:border-box;border-top:3px solid var(--gold)}
+body.authed #measurePanel,body.authed #bookmarksPanel{top:144px}
+#measurePanel b,#bookmarksPanel b{display:block;color:var(--navy);font-size:13px;margin-bottom:4px}
+#measurePanel .mRow{display:flex;justify-content:space-between;margin-top:6px;gap:8px}
+#measurePanel .mRow button{flex:1;padding:5px 0;font-size:11.5px}
+#bookmarksPanel{width:220px}
+.bmRow{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #eee;font-size:12px}
+.bmRow button{padding:2px 6px;font-size:10.5px}
+#parcelDrawer{display:none;position:absolute;top:0;right:0;bottom:0;width:340px;max-width:92vw;z-index:11;
+ background:#fff;box-shadow:-8px 0 30px rgba(11,37,69,.3);padding:16px;box-sizing:border-box;overflow:auto;font-size:13px}
+body.authed #parcelDrawer.open{display:block}
+#pdActions button{font-size:11.5px;padding:6px 9px}
+#pdProps div{padding:3px 0;border-bottom:1px solid #f1f4f8;font-size:12px;word-break:break-word}
+#pdProps b{color:#374151}
+#upload{display:none;position:absolute;top:92px;left:50%;transform:translateX(-50%);z-index:10;width:420px;max-width:92vw;
+ background:#fff;border-radius:10px;box-shadow:0 10px 34px rgba(11,37,69,.35);padding:16px;font-size:13px;box-sizing:border-box;border-top:3px solid var(--gold)}
+#upload input,#upload select{padding:6px;margin:3px 0;width:100%;box-sizing:border-box;border:1px solid #ccc;color:#000;border-radius:5px}
+#upload button{background:var(--navy3);color:#fff;border:0;border-radius:5px;padding:6px 11px;cursor:pointer;font-weight:600}
+#upload .note{font-size:11px;color:#888;margin:6px 0}
+#locSearchBox{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:6;width:320px;max-width:80vw}
+body.authed #locSearchBox{display:block;top:98px}
+#locSearchBox .locRow{display:flex;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(11,37,69,.25);overflow:hidden}
+#locSearchBox input{flex:1;border:0;border-radius:0;padding:9px 12px;font-size:13px}
+#locSearchBox input:focus{outline:none}
+#locSearchBox button{border-radius:0;background:var(--navy3);padding:0 14px}
+#locSearchResults{display:none;margin-top:4px;background:#fff;border-radius:8px;box-shadow:0 4px 18px rgba(11,37,69,.25);max-height:260px;overflow:auto}
+#locSearchResults div{padding:8px 12px;font-size:12.5px;border-bottom:1px solid #f0f0f0;cursor:pointer}
+#locSearchResults div:hover{background:#f3f6fb}
+#locSearchResults div:last-child{border-bottom:0}
+#status{display:none;position:absolute;top:82px;left:50%;transform:translateX(-50%);z-index:5;padding:8px 14px;border-radius:6px;font-size:13px}
+#legend{display:none;position:absolute;top:12px;left:12px;z-index:5;width:340px;max-height:86vh;overflow:auto;background:#fff;border-radius:10px;box-shadow:0 4px 18px rgba(11,37,69,.22);padding:14px;font-size:13px;box-sizing:border-box;border-top:3px solid var(--gold)}
+body.authed #legend{top:86px}
+/* Move the map's zoom +/- control out from behind the left sidebar once it's showing.
+   (top/left here are relative to the #map div, which is itself already offset below the header.) */
+body.authed .maplibregl-ctrl-top-left{left:364px}
+#legend>b{color:var(--navy);font-size:14px;letter-spacing:.3px}
+.lrow{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #eef1f5;flex-wrap:wrap}
+.lrow button{padding:2px 6px;font-size:11px;background:#eef2f7;color:var(--navy);border:0;border-radius:3px;cursor:pointer;font-weight:600}
+.sw{width:12px;height:12px;border-radius:2px;display:inline-block;flex-shrink:0}.lname{flex:1;word-break:break-all}.vw{font-size:11px;color:#555}
+#charts{display:none;position:absolute;top:86px;right:10px;bottom:10px;width:400px;z-index:5;overflow:auto;background:#fff;border-radius:10px;box-shadow:0 4px 18px rgba(11,37,69,.22);padding:14px;font-size:13px;box-sizing:border-box;border-top:3px solid var(--gold)}
+#charts h4{margin:14px 0 6px;color:var(--navy);font-size:13.5px;letter-spacing:.2px}
+.cards{display:flex;gap:10px}
+.card{flex:1;border-radius:10px;padding:12px 10px;display:flex;align-items:center;gap:9px;color:#fff;box-shadow:0 3px 10px rgba(11,37,69,.18)}
+.card b{display:block;font-size:21px;line-height:1.15}
+.card span{font-size:11px;opacity:.88}
+.card .kpiIcon{font-size:19px;line-height:1}
+.card.kpi-parcels{background:linear-gradient(145deg,var(--navy),var(--navy3))}
+.card.kpi-acres{background:linear-gradient(145deg,#8a6c0c,var(--gold))}
+#natCard{display:none;margin-top:14px;padding:14px;border-radius:10px;background:linear-gradient(160deg,#f6f8fb,#eef2f8);border:1px solid #e2e8f0}
+.natLabel{font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+.natRow{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0}
+.natRow b{font-size:19px;color:var(--navy)}
+.natRow span{font-size:11.5px;color:#64748b}
+.natDoughnutWrap{position:relative;height:230px;margin-top:12px;filter:drop-shadow(0 10px 16px rgba(11,37,69,.28))}
+.natDoughnutCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.natDoughnutCenter b{font-size:22px;color:var(--navy);line-height:1.1}
+.natDoughnutCenter span{font-size:9.5px;color:#64748b;text-transform:uppercase;letter-spacing:.3px;text-align:center;max-width:88px}
+#natLegend{margin-top:10px}
+.natLegRow{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11.5px}
+.natLegName{flex:1;color:#334155;word-break:break-word}
+.natLegPct{color:var(--navy);font-weight:700;white-space:nowrap}
+.natSubHead{margin:16px 0 6px;color:var(--navy);font-size:11.5px;letter-spacing:.4px;font-weight:700;text-transform:uppercase}
+.statGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.statTile{background:#fff;border:1px solid #e6ebf2;border-radius:8px;padding:9px 6px;text-align:center}
+.statTile b{display:block;font-size:15px;color:var(--navy);line-height:1.25;word-break:break-word}
+.statTile span{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:block;margin-top:2px}
+.natNote{font-size:10px;color:#94a3b8;margin-top:10px;line-height:1.35}
+/* ---- context menu popup for map features ---- */
+.ctxMenu{font-family:"Segoe UI",system-ui,sans-serif;min-width:200px}
+.ctxMenu .ctxHead{font-weight:700;color:var(--navy);font-size:13px;margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid #eef1f5}
+.ctxMenu .ctxActions{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.ctxMenu .ctxActions button{text-align:left;background:#f4f7fb;border:0;border-radius:6px;padding:7px 9px;font-size:12px;color:var(--navy);cursor:pointer;font-weight:600}
+.ctxMenu .ctxActions button:hover{background:#e2ebf7}
+.ctxMenu .ctxProps{font-size:11.5px;color:#374151;max-height:160px;overflow:auto;border-top:1px dashed #e2e8f0;padding-top:7px}
+.ctxMenu .ctxProps div{padding:1.5px 0}
+#charts select{padding:4px;font-size:12px;color:#000;border:1px solid #ccc;border-radius:4px}
+#charts a{color:var(--navy3);font-size:12px;cursor:pointer;font-weight:600}
+#layerSel,#basemapSel{padding:5px 6px;font-size:13px;color:#000;border:1px solid #ccc;border-radius:4px;max-width:175px}
+.ovToggle{font-size:12.5px;color:#e2e8f0;display:flex;align-items:center;gap:3px;white-space:nowrap}
+table.ptable{width:100%;border-collapse:collapse;font-size:12px}
+table.ptable th{text-align:left;color:#555;font-weight:600;border-bottom:1px solid #ddd;padding:4px}
+table.ptable td{padding:5px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer}
+table.ptable tr:hover td{background:#eff6ff}
+table.ptable td.num{text-align:right;white-space:nowrap}
+.pdot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px}
+#users,#activity,#compare,#occupancy,#features,#security{display:none;position:absolute;top:92px;left:50%;transform:translateX(-50%);z-index:10;width:420px;max-width:92vw;max-height:80vh;overflow:auto;background:#fff;border-radius:10px;box-shadow:0 10px 34px rgba(11,37,69,.35);padding:16px;font-size:13px;box-sizing:border-box;border-top:3px solid var(--gold)}
+#compare,#occupancy{width:560px}
+#activity{width:640px}
+.actTabBtn{background:#eef2f7;color:#475569}
+.actTabBtn.on{background:var(--navy3);color:#fff}
+#analyticsUserTable{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px}
+#analyticsUserTable th,#analyticsUserTable td{padding:5px 6px;border-bottom:1px solid #eee;text-align:left}
+#analyticsUserTable td.num,#analyticsUserTable th.num{text-align:right}
+.onlineDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#16a34a;margin-right:5px}
+#users>div>b,#activity>div>b,#compare>div>b,#occupancy>div>b,#features>div>b,#security>div>b{color:var(--navy);font-size:14px}
+#users input,#users select,#security input{padding:6px;margin:3px 0;width:100%;box-sizing:border-box;border:1px solid #ccc;color:#000;border-radius:5px}
+#users button,#activity button,#compare button,#occupancy button,#features button,#security button{background:var(--navy3);color:#fff;border:0;border-radius:5px;padding:6px 11px;cursor:pointer;font-weight:600}
+.featureRow{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;border-bottom:1px solid #eef1f5;font-size:12.5px;gap:10px}
+.featureRow input[type=checkbox]{width:auto;flex:none;transform:scale(1.15)}
+#occTextarea{width:100%;box-sizing:border-box;min-height:100px;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-family:ui-monospace,monospace;font-size:12px;resize:vertical}
+.occLayerRow{padding:9px 0;border-bottom:1px solid #eee}
+.occLayerRow .occName{font-weight:700;color:var(--navy);font-size:12.5px}
+.occLayerRow .occBadge{float:right;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.occBadge.clear{background:#dcfce7;color:#16a34a}
+.occBadge.occupied{background:#fee2e2;color:#c0392b}
+.occMatch{font-size:11.5px;color:#475569;display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.occMatch button{padding:2px 8px;font-size:10.5px}
+.urow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eee}
+#users button.urow-del{background:var(--red)}
+#users button.approve{background:#16a34a}
+.actRow{padding:7px 0;border-bottom:1px solid #eee;font-size:12.5px}
+.actRow .actAction{font-weight:700;color:var(--navy)}
+.actRow .actWhen{color:#94a3b8;font-size:11px;float:right}
+.actRow .actDetail{color:#475569;display:block;margin-top:2px}
+.countyChip{background:#eef2f7;color:#334155;border:1px solid #dbe2ea;border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer;font-weight:600}
+.countyChip.on{background:var(--navy3);color:#fff;border-color:var(--navy3)}
+.cmpTable{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+.cmpTable th,.cmpTable td{padding:6px 8px;border-bottom:1px solid #eee;text-align:right}
+.cmpTable th:first-child,.cmpTable td:first-child{text-align:left}
+.cmpTable tr.cmpTotal td{font-weight:700;border-top:2px solid #ccc}
+
+/* ---- fancy full-screen auth landing page ---- */
+#authScreen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+ background:linear-gradient(135deg,rgba(6,17,35,.78),rgba(11,37,69,.68));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#authCard,#forgotCard,#resetCard,#mfaCard{width:390px;max-width:92vw;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.5);
+ padding:34px 32px 28px;box-sizing:border-box;font-family:"Segoe UI",system-ui,sans-serif;animation:authPop .35s ease;
+ border-top:4px solid var(--gold);position:relative;overflow:hidden}
+#authCard::before,#forgotCard::before,#resetCard::before,#mfaCard::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;
+ background:linear-gradient(90deg,var(--gold),var(--red),var(--navy3),var(--gold))}
+@keyframes authPop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+#authLogo,.authLogo{text-align:center;margin-bottom:4px}
+#authLogo img,.authLogo img{height:64px;width:64px;border-radius:50%;box-shadow:0 4px 14px rgba(11,37,69,.3);object-fit:cover}
+#authCard h1,#forgotCard h1,#resetCard h1,#mfaCard h1{font-size:19px;margin:10px 0 1px;text-align:center;color:var(--navy);font-weight:800;letter-spacing:.2px}
+#authCard .authSub,#forgotCard .authSub,#resetCard .authSub,#mfaCard .authSub{font-size:12px;color:#64748b;text-align:center;margin:0 0 20px;letter-spacing:.3px;text-transform:uppercase;font-weight:600}
+#authTabs{display:flex;background:#eef2f7;border-radius:10px;padding:3px;margin-bottom:18px}
+#authTabs button{flex:1;background:transparent;color:#475569;border:0;border-radius:8px;padding:8px 0;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+#authTabs button.active{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+#authCard label,#forgotCard label,#resetCard label,#mfaCard label{font-size:12px;color:#374151;font-weight:600;display:block;margin:10px 0 4px}
+#authCard input,#forgotCard input,#resetCard input,#mfaCard input{width:100%;box-sizing:border-box;padding:10px 12px;font-size:14px;border:1.5px solid #e2e8f0;border-radius:10px;color:#111827;transition:border-color .15s}
+#authCard input:focus,#forgotCard input:focus,#resetCard input:focus,#mfaCard input:focus{outline:none;border-color:var(--navy3)}
+#authSubmit,#forgotSubmit,#resetSubmit,#mfaSubmit{width:100%;margin-top:18px;padding:11px 0;font-size:14px;font-weight:700;color:#fff;border:0;border-radius:10px;cursor:pointer;
+ background:linear-gradient(135deg,var(--navy),var(--navy3));box-shadow:0 6px 16px rgba(11,37,69,.4);transition:transform .1s}
+#authSubmit:active,#forgotSubmit:active,#resetSubmit:active,#mfaSubmit:active{transform:scale(.98)}
+#authMsg,#forgotMsg,#resetMsg{margin-top:14px;font-size:12.5px;text-align:center;min-height:16px;color:var(--red)}
+#authMsg.ok,#forgotMsg.ok,#resetMsg.ok{color:#16a34a}
+
+/* ---- mobile / small-screen layout ---- */
+#mobileToggles{display:none;position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:20;gap:8px}
+#mobileToggles button{background:var(--navy);color:#fff;border-radius:20px;padding:9px 16px;font-size:12.5px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#mobileToggles button.active{background:var(--gold-dk)}
+@media (max-width:760px){
+ #bar{height:56px;padding:0 8px}
+ body.authed #map{top:56px}
+ body.authed #legend{top:56px}
+ #brand{gap:8px}
+ #brand img{height:30px;width:30px}
+ #brandText b{font-size:12.5px;letter-spacing:0}
+ #brandText span{display:none}
+ #bar .right{gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;max-width:56vw;padding-bottom:2px}
+ #bar .right::-webkit-scrollbar{height:0}
+ #bar select{flex-shrink:0;font-size:11px;padding:4px 5px;max-width:108px}
+ .ovToggle{flex-shrink:0;font-size:10px;white-space:nowrap;gap:2px}
+ #userBox{flex-shrink:0;gap:4px}
+ #userBox button{padding:4px 6px;font-size:10.5px}
+ #who{display:none}
+ #mobileToggles{display:flex}
+ #legend,#charts{display:none!important;position:fixed;top:56px;left:0;right:0;bottom:0;width:auto;max-height:none;
+  border-radius:0;z-index:8;padding:14px 14px 76px}
+ body.authed #legend.mobileOpen,body.authed #charts.mobileOpen{display:block!important}
+ .maplibregl-ctrl-top-left{left:8px!important;top:8px!important}
+ body.authed #mapTools{top:64px;right:8px;gap:6px}
+ .mapToolBtn{padding:7px 10px;font-size:11.5px}
+ body.authed #measurePanel,body.authed #bookmarksPanel{top:108px;right:8px;width:170px}
+ body.authed #locSearchBox{top:64px;width:70vw}
+ #users,#activity,#compare,#occupancy,#features,#security,#upload{width:94vw;max-width:94vw;top:10vh}
+ #parcelDrawer{width:100vw}
+}
+body.dark{background:#0f1620}
+body.dark #map{filter:brightness(.88) contrast(1.05)}
+body.dark #legend,body.dark #charts,body.dark #users,body.dark #activity,body.dark #compare,
+body.dark #occupancy,body.dark #features,body.dark #security,body.dark #measurePanel,body.dark #bookmarksPanel,body.dark #parcelDrawer,body.dark #upload{
+ background:#182333;color:#dbe4f0;border-color:#2a3a52}
+body.dark #legend .card,body.dark #charts .card,body.dark .statTile{background:#1f2c40;color:#dbe4f0}
+body.dark input,body.dark select,body.dark textarea{background:#1f2c40;color:#e6ecf5;border-color:#33455f}
+body.dark table,body.dark th,body.dark td{color:#dbe4f0;border-color:#2a3a52!important}
+body.dark .urow,body.dark .actRow,body.dark .featureRow,body.dark .lrow{border-color:#2a3a52}
+body.dark a{color:#8fb8ff}
+body.dark #locSearchBox .locRow{background:#182333}
+body.dark #locSearchResults{background:#182333;color:#dbe4f0}
+body.dark h4,body.dark b{color:#e6ecf5}
+body.dark .natNote,body.dark .note{color:#93a3ba}
+#darkModeBtn{position:fixed;top:10px;right:10px;z-index:50;font-size:16px;padding:5px 9px;border-radius:50%}
+</style></head><body>
+<div id="loadBar"></div>
+<button id="darkModeBtn" title="Toggle dark mode" type="button">🌙</button>
+<div id="bar">
+ <div id="brand"><img src="/assets/lla-logo.jpg" alt="LLA logo"><div id="brandText"><b>LLA Land Information Dashboard</b><span>LIBERIA LAND AUTHORITY</span></div></div>
+ <div class="right">
+ <select id="layerSel"><option value="">Select a layer for stats...</option></select>
+ <select id="basemapSel">
+  <option value="streets">Streets</option>
+  <option value="satellite">Satellite</option>
+  <option value="light">Light</option>
+  <option value="dark">Dark</option>
+  <option value="terrain">Terrain</option>
+ </select>
+ <div id="userBox"><span id="who"></span><button id="activityBtn" style="display:none">📊 Analytics</button><button id="usersBtn" style="display:none">Users</button><button id="uploadBtn" style="display:none">⬆ Upload data</button><button id="featuresBtn" style="display:none">⚙ Features</button><button id="securityBtn">🔒 Security</button><button id="logoutBtn">Log out</button></div>
+ </div>
+</div>
+<div id="status"></div><div id="map"></div>
+<div id="mobileToggles"><button id="mobileLayersBtn">🗂 Layers</button><button id="mobileStatsBtn">📊 Stats</button></div>
+<div id="locSearchBox">
+ <div class="locRow">
+  <input id="locSearchInput" type="text" placeholder="Search a location in Liberia…" autocomplete="off">
+  <button id="locSearchBtn">🔍</button>
+ </div>
+ <div id="locSearchResults"></div>
+</div>
+<div id="mapTools">
+ <div id="measureBtn" class="mapToolBtn">📏 Measure</div>
+ <div id="occupancyBtn" class="mapToolBtn">📍 Check location</div>
+ <div id="locateBtn" class="mapToolBtn">🛰 My location</div>
+ <div id="bookmarksBtn" class="mapToolBtn">⭐ Views</div>
+ <div id="exportMapBtn" class="mapToolBtn">🖼 Export map</div>
+</div>
+<div id="bookmarksPanel">
+ <div style="display:flex;justify-content:space-between;align-items:center">
+  <b style="margin:0">Saved views</b>
+  <button id="bookmarksCloseBtn" style="background:none;border:0;color:#888;font-size:14px;cursor:pointer;padding:0 2px">✕</button>
+ </div>
+ <div id="bookmarksList" style="margin:8px 0"></div>
+ <input id="bookmarkName" placeholder="Name this view…">
+ <button id="bookmarkSaveBtn" style="width:100%;margin-top:6px">Save current view</button>
+ <div style="font-size:10.5px;color:#94a3b8;margin-top:6px">Saved in this browser only.</div>
+</div>
+<div id="parcelDrawer">
+ <div style="display:flex;justify-content:space-between;align-items:flex-start">
+  <div><b id="pdLayer" style="display:block;color:var(--navy);font-size:14px"></b><span id="pdSub" style="font-size:11px;color:#888"></span></div>
+  <button id="pdClose">Close</button>
+ </div>
+ <div id="pdActions" style="display:flex;gap:6px;margin:10px 0;flex-wrap:wrap"></div>
+ <div id="pdProps"></div>
+</div>
+<div id="measurePanel">
+ <b>Measure</b>
+ <div id="measureResult">Click the map to start. Double-click to finish a shape.</div>
+ <div class="mRow"><button id="measureUndo">Undo point</button><button id="measureClear">Clear</button></div>
+</div>
+<div id="legend"><b>Layers</b><div id="lList"></div>
+ <div id="natCard">
+  <div class="natLabel">All layers combined</div>
+  <div class="natRow"><b id="natParcels">-</b><span>parcels</span></div>
+  <div class="natRow"><b id="natAcres">-</b><span>acres</span></div>
+  <div class="natDoughnutWrap">
+   <canvas id="natDoughnut"></canvas>
+   <div class="natDoughnutCenter"><b id="natPct">-</b><span>of Liberia's land area</span></div>
+  </div>
+  <div id="natLegend"></div>
+  <div class="statGrid">
+   <div class="statTile"><b id="statLayers">-</b><span>layers mapped</span></div>
+   <div class="statTile"><b id="statAvg">-</b><span>avg parcel (ac)</span></div>
+   <div class="statTile"><b id="statLargest">-</b><span>largest layer</span></div>
+   <div class="statTile"><b id="statCounties">-</b><span>counties covered</span></div>
+  </div>
+  <h4 class="natSubHead">Surveys per year — by layer</h4>
+  <div id="natYearWrap" style="height:210px;display:none"><canvas id="natYearChart"></canvas></div>
+  <button id="compareBtn" style="width:100%;margin-top:12px;background:var(--navy2)">⚖ Compare counties</button>
+  <div class="natNote">Liberia's total land area ≈ 96,320 km² (23.8M acres) across 15 counties. Pie slices show each layer's share of the mapped total.</div>
+ </div>
+</div>
+<div id="charts">
+ <div id="countyFilter" style="display:none;align-items:center;justify-content:space-between;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:5px 8px;margin-bottom:8px">
+  <span>Filtered to <b id="countyFilterName"></b></span><a id="clearCountyFilter">Clear</a>
+ </div>
+ <div class="cards">
+  <div class="card kpi-parcels"><span class="kpiIcon">📍</span><div><b id="cParcels">-</b><span id="cParcelsLbl">parcels</span></div></div>
+  <div class="card kpi-acres"><span class="kpiIcon">🌍</span><div><b id="cAcres">-</b><span>acres</span></div></div>
+ </div>
+ <div id="adminExportRow" style="display:none;gap:8px;margin:8px 0">
+  <button id="exportCsvBtn" style="flex:1;background:var(--navy2)">⬇ Export CSV</button>
+  <button id="printReportBtn" style="flex:1;background:var(--navy2)">🖨 Print report</button>
+ </div>
+ <h4 style="display:flex;justify-content:space-between;align-items:center">Breakdown <a id="clearSel">Clear selection</a></h4>
+ <select id="grp"></select>
+ <select id="met"><option value="area" selected>Area (acres)</option><option value="count">Count</option></select>
+ <div style="height:260px;margin-top:8px"><canvas id="byChart"></canvas></div>
+ <div style="font-size:11px;color:#888;margin-top:4px">Click a bar to zoom the map to that group</div>
+ <h4 style="display:flex;justify-content:space-between;align-items:center">Top features by area <a id="clearParcelFilter" style="display:none">Clear filter</a></h4>
+ <div id="parcelFilterBar" style="display:flex;gap:6px;margin-bottom:6px">
+  <input id="parcelSearch" type="text" placeholder="Search name or ID…" style="flex:1;min-width:0;padding:5px 7px;border:1px solid #d8dee8;border-radius:6px;font-size:12px">
+  <input id="parcelMinAcres" type="number" placeholder="Min ac" style="width:64px;padding:5px 7px;border:1px solid #d8dee8;border-radius:6px;font-size:12px">
+  <input id="parcelMaxAcres" type="number" placeholder="Max ac" style="width:64px;padding:5px 7px;border:1px solid #d8dee8;border-radius:6px;font-size:12px">
+ </div>
+ <div id="parcelTableWrap"><table class="ptable" id="parcelTable"><thead><tr><th id="parcelColHead">Feature</th><th>County</th><th style="text-align:right">Acres</th></tr></thead><tbody id="parcelBody"></tbody></table></div>
+ <div id="parcelEmpty" style="display:none;font-size:12px;color:#888;padding:10px 0;text-align:center">No matching features</div>
+ <div style="font-size:11px;color:#888;margin-top:4px">Click a row to zoom to that feature</div>
+</div>
+<div id="users">
+ <div style="display:flex;justify-content:space-between"><b>Users</b><button id="uClose">Close</button></div>
+ <div style="display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px">
+  <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="uSelectAll">Select all</label>
+  <span id="uSelCount" style="color:#888">0 selected</span>
+  <span style="flex:1"></span>
+  <button id="uBulkApprove" class="approve" disabled>Approve selected</button>
+  <button id="uBulkDelete" class="urow-del" disabled>Delete selected</button>
+ </div>
+ <div id="uList" style="margin:8px 0"></div>
+ <b>Add a user</b>
+ <input id="uEmail" placeholder="email" autocomplete="off">
+ <input id="uPass" type="password" placeholder="password (min 8 characters)" autocomplete="new-password">
+ <select id="uRole"><option value="viewer">Viewer</option><option value="admin">Admin</option></select>
+ <input id="uCounty" placeholder="County (admin only - leave blank for all counties)" style="display:none">
+ <button id="uAdd" style="margin-top:6px">Add user</button>
+</div>
+<div id="features">
+ <div style="display:flex;justify-content:space-between"><b>Feature Settings</b><button id="featuresClose">Close</button></div>
+ <div style="font-size:11px;color:#888;margin:8px 0 4px">Super admin only. Turning a feature off hides it for every user - including admins - until it's switched back on.</div>
+ <div id="featureList"></div>
+</div>
+<div id="security">
+ <div style="display:flex;justify-content:space-between"><b>Two-factor authentication</b><button id="securityClose">Close</button></div>
+ <div id="secStatus" style="margin:10px 0;font-size:13px"></div>
+ <div id="secSetup" style="display:none">
+  <div style="font-size:12px;color:#555;margin-bottom:8px">Scan this with Google Authenticator, Authy, or any TOTP app, then enter the 6-digit code it shows to turn 2FA on.</div>
+  <img id="secQr" style="display:block;margin:0 auto 8px;width:180px;height:180px;border:1px solid #eee;border-radius:6px">
+  <div style="font-size:10.5px;color:#94a3b8;text-align:center;margin-bottom:10px">Can't scan? Enter this key manually: <code id="secSecret"></code></div>
+  <input id="secEnableCode" placeholder="6-digit code" inputmode="numeric" maxlength="6">
+  <button id="secEnableBtn" style="width:100%;margin-top:6px">Turn on 2FA</button>
+ </div>
+ <div id="secDisable" style="display:none">
+  <input id="secDisableCode" placeholder="6-digit code, to confirm" inputmode="numeric" maxlength="6">
+  <button id="secDisableBtn" class="urow-del" style="width:100%;margin-top:6px">Turn off 2FA</button>
+ </div>
+</div>
+<div id="upload">
+ <div style="display:flex;justify-content:space-between"><b>Upload layer data</b><button id="uploadClose">Close</button></div>
+ <div class="note">Super admin only. Upload a .zip containing a shapefile (.shp/.shx/.dbf/.prj) to create a new layer or replace/append an existing one.</div>
+ <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin:8px 0 3px">Layer (schema.table)</label>
+ <input id="upLayerName" placeholder="public.new_layer">
+ <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin:8px 0 3px">Mode</label>
+ <select id="upMode"><option value="replace">Replace existing layer</option><option value="append">Append to existing layer</option></select>
+ <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin:8px 0 3px">Shapefile (.zip)</label>
+ <input id="upFile" type="file" accept=".zip">
+ <button id="upSubmit" style="width:100%;margin-top:10px">Upload</button>
+ <div id="upResult" style="margin-top:10px;font-size:12px"></div>
+ <h4 style="margin:16px 0 4px;font-size:13px;color:var(--navy)">Import history</h4>
+ <div id="importHistoryList" style="max-height:160px;overflow:auto;font-size:11.5px"></div>
+</div>
+<div id="activity">
+ <div style="display:flex;justify-content:space-between"><b>Analytics</b><button id="actClose">Close</button></div>
+ <div style="display:flex;gap:6px;margin:10px 0">
+  <button id="actTabOverview" class="actTabBtn on">Overview</button>
+  <button id="actTabLog" class="actTabBtn">Raw log</button>
+  <button id="actTabOverlap" class="actTabBtn">Overlap check</button>
+ </div>
+ <div id="actOverview">
+  <div class="statGrid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+   <div class="statTile"><b id="anOnline">-</b><span>online now</span></div>
+   <div class="statTile"><b id="anUsers">-</b><span>unique visitors</span></div>
+   <div class="statTile"><b id="anEvents">-</b><span>events (30d)</span></div>
+   <div class="statTile"><b id="anTopResource">-</b><span>most used</span></div>
+  </div>
+  <h4 style="margin-bottom:4px">Most-used features & layers</h4>
+  <div style="height:170px"><canvas id="analyticsResourceChart"></canvas></div>
+  <h4 style="margin-bottom:4px">Activity over time</h4>
+  <div style="height:150px"><canvas id="analyticsDailyChart"></canvas></div>
+  <h4 style="margin-bottom:4px">Who's using it</h4>
+  <div style="overflow-x:auto">
+  <table id="analyticsUserTable"><thead><tr><th>User</th><th class="num">Sessions</th><th class="num">Time on site</th><th>Last seen</th><th>Top resource</th><th>IP</th></tr></thead><tbody id="analyticsUserBody"></tbody></table>
+  </div>
+ </div>
+ <div id="actLog" style="display:none">
+  <div style="font-size:11px;color:#888;margin:6px 0">Most recent events, newest first, each with the account and IP address behind it.</div>
+  <div id="actList" style="margin:8px 0"></div>
+ </div>
+ <div id="actOverlap" style="display:none">
+  <div style="font-size:11px;color:#888;margin:6px 0">Flags any two mapped parcels - in the same layer or across two different layers - whose boundaries genuinely overlap. Usually means a duplicate entry or a conflicting allocation.</div>
+  <button id="overlapRun" style="width:100%">Run overlap check</button>
+  <div id="overlapResult" style="margin-top:10px"></div>
+ </div>
+</div>
+<div id="compare">
+ <div style="display:flex;justify-content:space-between"><b>Compare counties</b><button id="compareClose">Close</button></div>
+ <div style="font-size:11px;color:#888;margin:6px 0">Pick 2–4 counties to compare parcels and acreage across all mapped layers.</div>
+ <div id="compareCounties" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+ <button id="compareRun" style="width:100%">Compare</button>
+ <div id="compareResults" style="margin-top:12px"></div>
+</div>
+
+<div id="occupancy">
+ <div style="display:flex;justify-content:space-between"><b>Check if an area is occupied</b><button id="occClose">Close</button></div>
+ <div style="font-size:11px;color:#888;margin:6px 0">
+  Paste coordinates - one pair per line. A single pair checks a spot;
+  three or more pairs are treated as the corners of an area, checked for overlap with any mapped parcel.
+ </div>
+ <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+  <label style="font-size:12px;color:#374151;font-weight:600">Format</label>
+  <select id="occFormat" style="flex:1;padding:5px 7px;border:1px solid #ccc;border-radius:5px">
+   <option value="geo">Geographic (latitude, longitude)</option>
+   <option value="utm">UTM (easting, northing)</option>
+  </select>
+  <span id="occUtmZone" style="display:none;font-size:11px;color:#888;white-space:nowrap">
+   Zone <input id="occZoneNum" type="number" value="29" min="1" max="60" style="width:38px;padding:3px 4px;border:1px solid #ccc;border-radius:4px">N
+  </span>
+ </div>
+ <div id="occFormatHint" style="font-size:10.5px;color:#94a3b8;margin:-4px 0 6px">Liberia lies entirely within UTM zone 29N.</div>
+ <textarea id="occTextarea" placeholder="6.4281, -9.4295&#10;6.4300, -9.4310&#10;6.4290, -9.4330"></textarea>
+ <button id="occRun" style="width:100%;margin-top:8px">Check</button>
+ <div id="occResults" style="margin-top:12px"></div>
+</div>
+
+<div id="authScreen">
+ <div id="authCard">
+  <div id="authLogo"><img src="/assets/lla-logo.jpg" alt="LLA logo"></div>
+  <h1>LLA Land Information Dashboard</h1>
+  <p class="authSub">Liberia Land Authority</p>
+  <div id="authTabs">
+   <button type="button" class="active" data-mode="login">Log in</button>
+   <button type="button" data-mode="register">Create account</button>
+  </div>
+  <form id="authForm">
+   <label for="email">Email</label>
+   <input id="email" type="email" placeholder="you@example.com" autocomplete="username" required>
+   <label for="password">Password</label>
+   <input id="password" type="password" placeholder="password" autocomplete="current-password" required>
+   <button id="authSubmit" type="submit">Log in</button>
+  </form>
+  <p id="forgotLink" style="text-align:center;margin-top:8px"><a href="#" id="forgotPasswordLink" style="font-size:12.5px;color:#123a6b">Forgot password?</a></p>
+  <p id="publicViewLink" style="display:none;text-align:center;margin-top:4px"><a href="/public.html" style="font-size:12.5px;color:#123a6b">View public summary (no login)</a></p>
+  <div id="authMsg"></div>
+ </div>
+ <div id="mfaCard" style="display:none">
+  <div class="authLogo"><img src="/assets/lla-logo.jpg" alt="LLA logo"></div>
+  <h1>Enter your code</h1>
+  <p class="authSub">From your authenticator app</p>
+  <form id="mfaForm">
+   <label for="mfaCode">6-digit code</label>
+   <input id="mfaCode" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" required maxlength="6">
+   <button id="mfaSubmit" type="submit">Verify</button>
+  </form>
+  <p style="text-align:center;margin-top:8px"><a href="#" id="mfaBackLink" style="font-size:12.5px;color:#123a6b">Back to log in</a></p>
+  <div id="mfaMsg"></div>
+ </div>
+ <div id="forgotCard" style="display:none">
+  <div class="authLogo"><img src="/assets/lla-logo.jpg" alt="LLA logo"></div>
+  <h1>Reset your password</h1>
+  <p class="authSub">Enter the email on your account</p>
+  <form id="forgotForm">
+   <label for="forgotEmail">Email</label>
+   <input id="forgotEmail" type="email" placeholder="you@example.com" autocomplete="username" required>
+   <button id="forgotSubmit" type="submit">Send reset link</button>
+  </form>
+  <p style="text-align:center;margin-top:8px"><a href="#" id="backToLoginLink" style="font-size:12.5px;color:#123a6b">Back to log in</a></p>
+  <div id="forgotMsg"></div>
+ </div>
+ <div id="resetCard" style="display:none">
+  <div class="authLogo"><img src="/assets/lla-logo.jpg" alt="LLA logo"></div>
+  <h1>Choose a new password</h1>
+  <p class="authSub">Liberia Land Authority</p>
+  <form id="resetForm">
+   <label for="resetPassword">New password</label>
+   <input id="resetPassword" type="password" placeholder="password (min 8 characters)" autocomplete="new-password" required>
+   <button id="resetSubmit" type="submit">Set new password</button>
+  </form>
+  <div id="resetMsg"></div>
+ </div>
+</div>
+
+<script>
+const TILES="/tiles", API="/api";
+let token=null, myRole="";
+const isStaff=()=>myRole==="admin"||myRole==="super_admin";
+const isSuperAdmin=()=>myRole==="super_admin";
+const $=id=>document.getElementById(id);
+(()=>{
+ try{
+  if(localStorage.getItem("darkMode")==="1"){document.body.classList.add("dark");$("darkModeBtn").textContent="☀";}
+ }catch(e){}
+ $("darkModeBtn").onclick=()=>{
+  const on=document.body.classList.toggle("dark");
+  $("darkModeBtn").textContent=on?"☀":"🌙";
+  try{localStorage.setItem("darkMode",on?"1":"0");}catch(e){}
+ };
+})();
+const say=(t,err)=>{const s=$("status");s.textContent=t;s.style.display=t?"block":"none";s.style.background=err?"#fee2e2":"#e0f2fe"};
+const authSay=(t,err)=>{const m=$("authMsg");m.textContent=t||"";m.className=err?"":"ok"};
+const H=()=>({Authorization:`Bearer ${token}`});
+let _inflight=0;
+function _loadStart(){_inflight++;const b=$("loadBar");b.classList.add("on");b.style.width="70%";}
+function _loadEnd(){_inflight=Math.max(0,_inflight-1);if(_inflight===0){const b=$("loadBar");b.style.width="100%";setTimeout(()=>{if(_inflight===0){b.classList.remove("on");b.style.width="0%";}},250);}}
+const getJ=async p=>{_loadStart();try{const r=await fetch(`${API}${p}`,{headers:H()});if(!r.ok)throw new Error("API "+r.status);return await r.json();}finally{_loadEnd();}};
+const errText=async(r,fb)=>{const j=await r.json().catch(()=>({}));return typeof j.detail==="string"?j.detail:fb};
+
+const map=new maplibregl.Map({
+ transformRequest:(url)=>(token&&url.startsWith(location.origin+TILES+"/"))?{url,headers:{Authorization:`Bearer ${token}`}}:{url},
+ container:"map",center:[-9.5,6.5],zoom:6,preserveDrawingBuffer:true,
+ style:{version:8,sources:{osm:{type:"raster",tileSize:256,attribution:"© OpenStreetMap contributors",tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"]}},layers:[{id:"osm",type:"raster",source:"osm"}]}});
+map.addControl(new maplibregl.NavigationControl(),"top-left");
+
+// ---- measure tool: click to add vertices, shows running distance and (once closed) area ----
+let measuring=false, measurePts=[];
+function haversineM(a,b){
+ const R=6371000,toRad=d=>d*Math.PI/180;
+ const dLat=toRad(b[1]-a[1]),dLng=toRad(b[0]-a[0]);
+ const lat1=toRad(a[1]),lat2=toRad(b[1]);
+ const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+ return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+function sphereRingAreaM2(pts){
+ // Spherical-excess polygon area (same approach as turf's ringArea), pts = closed or open ring of [lng,lat].
+ if(pts.length<3)return 0;
+ const R=6371000,toRad=d=>d*Math.PI/180;
+ let total=0;
+ for(let i=0;i<pts.length;i++){
+  const p1=pts[i],p2=pts[(i+1)%pts.length],p3=pts[(i+2)%pts.length];
+  total+=(toRad(p3[0])-toRad(p1[0]))*Math.sin(toRad(p2[1]));
+ }
+ return Math.abs(total*R*R/2);
+}
+function ensureMeasureLayers(){
+ if(map.getSource("measureSrc"))return;
+ map.addSource("measureSrc",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
+ map.addLayer({id:"measureFill",type:"fill",source:"measureSrc",filter:["==","$type","Polygon"],
+  paint:{"fill-color":"#e8b923","fill-opacity":.18}});
+ map.addLayer({id:"measureLine",type:"line",source:"measureSrc",filter:["==","$type","LineString"],
+  paint:{"line-color":"#c0392b","line-width":2.5,"line-dasharray":[2,1]}});
+ map.addLayer({id:"measurePts",type:"circle",source:"measureSrc",filter:["==","$type","Point"],
+  paint:{"circle-radius":5,"circle-color":"#fff","circle-stroke-color":"#c0392b","circle-stroke-width":2}});
+}
+function redrawMeasure(){
+ if(!map.getSource("measureSrc"))return;
+ const features=measurePts.map(p=>({type:"Feature",geometry:{type:"Point",coordinates:p},properties:{}}));
+ if(measurePts.length>=2){
+  const ring=measurePts.length>=3?[...measurePts,measurePts[0]]:measurePts;
+  features.push({type:"Feature",geometry:{type:"LineString",coordinates:ring},properties:{}});
+ }
+ if(measurePts.length>=3){
+  features.push({type:"Feature",geometry:{type:"Polygon",coordinates:[[...measurePts,measurePts[0]]]},properties:{}});
+ }
+ map.getSource("measureSrc").setData({type:"FeatureCollection",features});
+ let distM=0;
+ for(let i=1;i<measurePts.length;i++)distM+=haversineM(measurePts[i-1],measurePts[i]);
+ const fmtDist=distM<1000?`${Math.round(distM)} m`:`${(distM/1000).toFixed(2)} km (${(distM/1609.34).toFixed(2)} mi)`;
+ let html=measurePts.length?`Distance: <b style="display:inline">${fmtDist}</b>`:"Click the map to start. Double-click to finish a shape.";
+ if(measurePts.length>=3){
+  const areaM2=sphereRingAreaM2(measurePts);
+  const acres=areaM2*0.000247105;
+  html+=`<br>Area: <b style="display:inline">${acres<1?acres.toFixed(3):Math.round(acres).toLocaleString()} acres</b> (${(areaM2/10000).toFixed(2)} ha)`;
+ }
+ $("measureResult").innerHTML=html;
+}
+function toggleMeasure(on){
+ measuring=on;
+ $("measureBtn").classList.toggle("active",on);
+ $("measurePanel").style.display=on?"block":"none";
+ map.getCanvas().style.cursor=on?"crosshair":"";
+ map.doubleClickZoom[on?"disable":"enable"]();
+ if(!on){measurePts=[];if(map.getSource("measureSrc"))map.getSource("measureSrc").setData({type:"FeatureCollection",features:[]});}
+ else{ensureMeasureLayers();measurePts=[];redrawMeasure();logEvent("tool.measure");}
+}
+$("measureBtn").onclick=()=>toggleMeasure(!measuring);
+$("measureClear").onclick=()=>{measurePts=[];redrawMeasure();};
+$("measureUndo").onclick=()=>{measurePts.pop();redrawMeasure();};
+function finishMeasuring(){
+ if(!measuring)return;
+ const resultText=$("measureResult").textContent;
+ measuring=false;
+ $("measureBtn").classList.remove("active");
+ $("measurePanel").style.display="none";
+ map.getCanvas().style.cursor="";
+ map.doubleClickZoom.enable();
+ if(measurePts.length>=2)say(resultText);
+ logEvent("tool.measure_finish");
+}
+map.on("dblclick",()=>{if(measuring)finishMeasuring();});
+
+// ---- location search (OpenStreetMap Nominatim, biased to Liberia) ----
+let locMarker=null,_locDebounce=null,_locAbort=null;
+function clearLocResults(){$("locSearchResults").style.display="none";$("locSearchResults").innerHTML="";}
+async function runLocSearch(q){
+ if(!q||q.trim().length<3){clearLocResults();return}
+ if(_locAbort)_locAbort.abort();
+ _locAbort=new AbortController();
+ $("locSearchResults").style.display="block";
+ $("locSearchResults").innerHTML='<div class="loadingRow"><span class="spinner"></span>Searching…</div>';
+ try{
+  const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=lr&q=${encodeURIComponent(q)}`;
+  const r=await fetch(url,{signal:_locAbort.signal,headers:{Accept:"application/json"}});
+  if(!r.ok)throw new Error("search failed");
+  const results=await r.json();
+  const box=$("locSearchResults");box.innerHTML="";
+  if(!results.length){box.innerHTML='<div style="color:#888">No matches found in Liberia</div>';return}
+  results.forEach(res=>{
+   const div=document.createElement("div");
+   div.textContent=res.display_name;
+   div.onclick=()=>{
+    const lon=parseFloat(res.lon),lat=parseFloat(res.lat);
+    map.flyTo({center:[lon,lat],zoom:15});
+    if(locMarker)locMarker.remove();
+    locMarker=new maplibregl.Marker({color:"#c0392b"}).setLngLat([lon,lat])
+     .setPopup(new maplibregl.Popup().setText(res.display_name)).addTo(map);
+    locMarker.togglePopup();
+    $("locSearchInput").value=res.display_name.split(",")[0];
+    clearLocResults();
+    logEvent("search.location",res.display_name.slice(0,150));
+   };
+   box.appendChild(div);
+  });
+ }catch(e){if(e.name!=="AbortError"){$("locSearchResults").innerHTML='<div style="color:#c0392b">Could not search: '+e.message+'</div>'}}
+}
+$("locSearchInput").oninput=()=>{clearTimeout(_locDebounce);const q=$("locSearchInput").value;_locDebounce=setTimeout(()=>runLocSearch(q),500);};
+$("locSearchBtn").onclick=()=>runLocSearch($("locSearchInput").value);
+$("locSearchInput").onkeydown=(e)=>{if(e.key==="Enter"){e.preventDefault();clearTimeout(_locDebounce);runLocSearch($("locSearchInput").value)}if(e.key==="Escape")clearLocResults()};
+document.addEventListener("click",(e)=>{if(!$("locSearchBox").contains(e.target))clearLocResults()});
+
+// ---- check-occupancy tool: paste coordinates (geographic or UTM), see whether any mapped
+// layer already covers that spot/area ----
+$("occupancyBtn").onclick=()=>{
+ $("occupancy").style.display="block";
+ $("occResults").innerHTML="";
+};
+$("occClose").onclick=()=>{$("occupancy").style.display="none"};
+
+// ---- My location ----
+let _locateMarker=null;
+$("locateBtn").onclick=()=>{
+ if(!navigator.geolocation)return say("Geolocation isn't available in this browser",true);
+ $("locateBtn").textContent="🛰 Locating…";
+ navigator.geolocation.getCurrentPosition(
+  (pos)=>{
+   $("locateBtn").textContent="🛰 My location";
+   const {latitude,longitude}=pos.coords;
+   if(_locateMarker)_locateMarker.remove();
+   _locateMarker=new maplibregl.Marker({color:"#1d4e89"}).setLngLat([longitude,latitude]).addTo(map);
+   map.flyTo({center:[longitude,latitude],zoom:15});
+   logEvent("tool.my_location");
+  },
+  (err)=>{$("locateBtn").textContent="🛰 My location";say("Could not get your location: "+err.message,true)},
+  {enableHighAccuracy:true,timeout:10000}
+ );
+};
+
+// ---- Saved views / bookmarks (per-browser, localStorage) ----
+function bookmarksKey(){return `mapBookmarks:${myEmail||"anon"}`;}
+function loadBookmarks(){
+ try{
+  // one-time migration: views saved before per-user separation existed lived under a single
+  // shared key ("mapBookmarks"), so every user on the same browser saw everyone else's views.
+  // Move that old shared list onto whichever user's key loads first, then retire the old key.
+  const legacy=localStorage.getItem("mapBookmarks");
+  if(legacy!==null){
+   if(localStorage.getItem(bookmarksKey())===null)localStorage.setItem(bookmarksKey(),legacy);
+   localStorage.removeItem("mapBookmarks");
+  }
+  return JSON.parse(localStorage.getItem(bookmarksKey())||"[]");
+ }catch(e){return []}
+}
+function saveBookmarks(list){try{localStorage.setItem(bookmarksKey(),JSON.stringify(list))}catch(e){}}
+function renderBookmarks(){
+ const list=loadBookmarks();
+ const box=$("bookmarksList");box.textContent="";
+ if(!list.length){box.innerHTML='<div style="color:#888;font-size:11.5px;padding:6px 0">No saved views yet</div>';return}
+ list.forEach((bm,i)=>{
+  const row=document.createElement("div");row.className="bmRow";
+  const name=document.createElement("span");name.textContent=bm.name;name.style.cursor="pointer";name.style.flex="1";
+  name.onclick=()=>{map.flyTo({center:bm.center,zoom:bm.zoom,bearing:bm.bearing||0,pitch:bm.pitch||0});logEvent("tool.bookmark_open",bm.name);};
+  const del=document.createElement("button");del.textContent="✕";
+  del.onclick=()=>{const l=loadBookmarks();l.splice(i,1);saveBookmarks(l);renderBookmarks();};
+  row.append(name,del);box.appendChild(row);
+ });
+}
+$("bookmarksBtn").onclick=()=>{const open=$("bookmarksPanel").style.display!=="block";$("bookmarksPanel").style.display=open?"block":"none";if(open)renderBookmarks();};
+$("bookmarksCloseBtn").onclick=()=>{$("bookmarksPanel").style.display="none";};
+document.addEventListener("click",(e)=>{
+ if($("bookmarksPanel").style.display==="block"&&!$("bookmarksPanel").contains(e.target)&&e.target!==$("bookmarksBtn")&&!$("bookmarksBtn").contains(e.target)){
+  $("bookmarksPanel").style.display="none";
+ }
+});
+$("bookmarkSaveBtn").onclick=()=>{
+ const name=$("bookmarkName").value.trim();
+ if(!name)return say("Name this view first",true);
+ const c=map.getCenter();
+ const list=loadBookmarks();
+ list.push({name,center:[c.lng,c.lat],zoom:map.getZoom(),bearing:map.getBearing(),pitch:map.getPitch()});
+ saveBookmarks(list);$("bookmarkName").value="";renderBookmarks();
+ $("bookmarksPanel").style.display="none";
+ say(`Saved view "${name}"`);
+ logEvent("tool.bookmark_save",name);
+};
+
+// ---- Cartographic map export (PNG with legend, scale bar, north arrow) ----
+function metersPerPixel(map){
+ const c=map.getCenter();
+ return 156543.03392*Math.cos(c.lat*Math.PI/180)/Math.pow(2,map.getZoom());
+}
+$("exportMapBtn").onclick=async()=>{
+ const btn=$("exportMapBtn"),orig=btn.textContent;btn.textContent="🖼 Rendering…";
+ try{
+  await new Promise(r=>map.once("idle",r));
+  const src=map.getCanvas();
+  const out=document.createElement("canvas");out.width=src.width;out.height=src.height;
+  const ctx=out.getContext("2d");
+  ctx.drawImage(src,0,0);
+  // title bar
+  ctx.fillStyle="rgba(11,37,69,.88)";ctx.fillRect(0,0,out.width,42);
+  ctx.fillStyle="#fff";ctx.font="bold 16px system-ui,sans-serif";
+  ctx.fillText("LLA Land Information Dashboard"+(currentLayer?" — "+prettyLayerName(currentLayer,currentLayer):""),14,27);
+  // legend (active layers)
+  ctx.fillStyle="rgba(255,255,255,.92)";
+  const boxH=((_shownLayers||[]).length*18)+34;
+  ctx.fillRect(10,out.height-boxH-10,190,boxH);
+  ctx.fillStyle="#0b2545";ctx.font="bold 11px system-ui,sans-serif";
+  ctx.fillText("Legend",20,out.height-boxH+6);
+  (_shownLayers||[]).forEach((l,i)=>{
+   const y=out.height-boxH+24+(i*18);
+   ctx.fillStyle=COLORS[i%COLORS.length];ctx.fillRect(20,y-9,10,10);
+   ctx.fillStyle="#111827";ctx.font="11px system-ui,sans-serif";
+   ctx.fillText(prettyLayerName(l.id,l.name).slice(0,26),36,y);
+  });
+  // scale bar (bottom right)
+  const mpp=metersPerPixel(map);
+  const targetPx=120;
+  const meters=mpp*targetPx;
+  const niceMeters=[10,20,50,100,200,500,1000,2000,5000,10000,20000,50000].reduce((a,b)=>Math.abs(b-meters)<Math.abs(a-meters)?b:a,10);
+  const barPx=niceMeters/mpp;
+  const sbX=out.width-barPx-20,sbY=out.height-24;
+  ctx.strokeStyle="#111827";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(sbX,sbY);ctx.lineTo(sbX+barPx,sbY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(sbX,sbY-5);ctx.lineTo(sbX,sbY+5);ctx.moveTo(sbX+barPx,sbY-5);ctx.lineTo(sbX+barPx,sbY+5);ctx.stroke();
+  ctx.fillStyle="#111827";ctx.font="11px system-ui,sans-serif";ctx.textAlign="center";
+  ctx.fillText((niceMeters>=1000?(niceMeters/1000)+" km":niceMeters+" m"),sbX+barPx/2,sbY-8);
+  ctx.textAlign="left";
+  // north arrow (top right)
+  const naX=out.width-34,naY=60;
+  ctx.save();ctx.translate(naX,naY);
+  ctx.fillStyle="#111827";
+  ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(8,10);ctx.lineTo(0,4);ctx.lineTo(-8,10);ctx.closePath();ctx.fill();
+  ctx.font="bold 11px system-ui,sans-serif";ctx.textAlign="center";ctx.fillText("N",0,-20);
+  ctx.restore();ctx.textAlign="left";
+  // footer
+  ctx.fillStyle="rgba(255,255,255,.85)";ctx.fillRect(0,out.height-16,220,16);
+  ctx.fillStyle="#374151";ctx.font="10px system-ui,sans-serif";
+  ctx.fillText("Generated "+new Date().toLocaleDateString(),6,out.height-5);
+
+  const url=out.toDataURL("image/png");
+  const a=document.createElement("a");a.href=url;a.download=`lla-map-export-${Date.now()}.png`;a.click();
+  logEvent("export.map_image",currentLayer||"");
+ }catch(e){say("Could not export map image: "+e.message,true)}
+ finally{btn.textContent=orig}
+};
+function onOccFormatChange(){
+ const utm=$("occFormat").value==="utm";
+ $("occUtmZone").style.display=utm?"inline":"none";
+ $("occTextarea").placeholder=utm
+  ?"300123, 712456\n300500, 712800\n300890, 712610"
+  :"6.4281, -9.4295\n6.4300, -9.4310\n6.4290, -9.4330";
+ $("occFormatHint").textContent=utm
+  ?"Enter easting, northing (meters). Liberia lies entirely within UTM zone 29N."
+  :"Enter latitude, longitude (decimal degrees). Liberia lies entirely within UTM zone 29N.";
+}
+$("occFormat").onchange=onOccFormatChange;
+onOccFormatChange();
+
+// Standard Snyder (1987) inverse UTM->geographic formulas, WGS84 ellipsoid.
+function utmToLatLon(easting,northing,zoneNum,northernHemisphere){
+ const a=6378137.0,f=1/298.257223563,k0=0.9996;
+ const eSq=f*(2-f);
+ const ePrimeSq=eSq/(1-eSq);
+ const x=easting-500000;
+ const y=northernHemisphere?northing:northing-10000000;
+ const longOrigin=(zoneNum-1)*6-180+3;
+ const M=y/k0;
+ const mu=M/(a*(1-eSq/4-3*eSq*eSq/64-5*eSq*eSq*eSq/256));
+ const e1=(1-Math.sqrt(1-eSq))/(1+Math.sqrt(1-eSq));
+ const J1=3*e1/2-27*Math.pow(e1,3)/32;
+ const J2=21*Math.pow(e1,2)/16-55*Math.pow(e1,4)/32;
+ const J3=151*Math.pow(e1,3)/96;
+ const J4=1097*Math.pow(e1,4)/512;
+ const fp=mu+J1*Math.sin(2*mu)+J2*Math.sin(4*mu)+J3*Math.sin(6*mu)+J4*Math.sin(8*mu);
+ const C1=ePrimeSq*Math.pow(Math.cos(fp),2);
+ const T1=Math.pow(Math.tan(fp),2);
+ const R1=a*(1-eSq)/Math.pow(1-eSq*Math.pow(Math.sin(fp),2),1.5);
+ const N1=a/Math.sqrt(1-eSq*Math.pow(Math.sin(fp),2));
+ const D=x/(N1*k0);
+ const Q1=N1*Math.tan(fp)/R1;
+ const Q2=D*D/2;
+ const Q3=(5+3*T1+10*C1-4*C1*C1-9*ePrimeSq)*Math.pow(D,4)/24;
+ const Q4=(61+90*T1+298*C1+45*T1*T1-3*C1*C1-252*ePrimeSq)*Math.pow(D,6)/720;
+ const lat=fp-Q1*(Q2-Q3+Q4);
+ const Q5=D;
+ const Q6=(1+2*T1+C1)*Math.pow(D,3)/6;
+ const Q7=(5-2*C1+28*T1-3*C1*C1+8*ePrimeSq+24*T1*T1)*Math.pow(D,5)/120;
+ const lon=(longOrigin*Math.PI/180)+(Q5-Q6+Q7)/Math.cos(fp);
+ return {lat:lat*180/Math.PI, lon:lon*180/Math.PI};
+}
+function parseOccCoords(text){
+ const format=$("occFormat").value;
+ const zoneNum=parseInt($("occZoneNum").value,10)||29;
+ const pts=[];
+ for(const raw of text.split("\n")){
+  const line=raw.trim();
+  if(!line)continue;
+  const parts=line.split(/[,\s]+/).map(Number);
+  if(parts.length<2||parts.some(isNaN)){
+   throw new Error(`Could not read line: "${line}" - expected "${format==="utm"?"easting, northing":"latitude, longitude"}"`);
+  }
+  if(format==="utm"){
+   const [easting,northing]=parts;
+   if(easting<100000||easting>900000||northing<0||northing>10000000){
+    throw new Error(`Out of range for UTM: "${line}" - is this easting, northing (meters)?`);
+   }
+   const {lat,lon}=utmToLatLon(easting,northing,zoneNum,true);
+   pts.push([lon,lat]);
+  }else{
+   const [lat,lng]=parts;
+   if(lat<-90||lat>90||lng<-180||lng>180)throw new Error(`Out of range: "${line}" - is this latitude, longitude?`);
+   pts.push([lng,lat]); // backend wants [lng,lat]
+  }
+ }
+ return pts;
+}
+$("occRun").onclick=async()=>{
+ const box=$("occResults");
+ let points;
+ try{ points=parseOccCoords($("occTextarea").value); }
+ catch(e){ box.innerHTML='<div style="color:#c0392b">'+e.message+'</div>'; return; }
+ if(points.length===0)return box.innerHTML='<div style="color:#c0392b">Paste at least one coordinate</div>';
+ if(points.length===2)return box.innerHTML='<div style="color:#c0392b">Two points isn\'t a shape - use one point, or three or more to outline an area</div>';
+ if(!_shownLayers.length)return box.innerHTML='<div style="color:#c0392b">No layers available to check against</div>';
+ const btn=$("occRun"),orig=btn.textContent;btn.disabled=true;btn.textContent="Checking…";
+ box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Checking '+_shownLayers.length+' layer(s)…</div>';
+ logEvent("tool.check_occupancy",`${points.length} point(s)`);
+ try{
+  const results=await Promise.all(_shownLayers.map(l=>
+   fetch(`${API}/stats/check-occupancy?layer=${encodeURIComponent(l.id)}`,{
+    method:"POST",headers:{...H(),"Content-Type":"application/json"},body:JSON.stringify({points})
+   }).then(r=>r.ok?r.json():{layer:l.id,matches:[],_error:true}).catch(()=>({layer:l.id,matches:[],_error:true}))
+  ));
+  const anyOccupied=results.some(r=>r.matches&&r.matches.length);
+  let html=`<div style="font-weight:700;margin-bottom:8px;color:${anyOccupied?"#c0392b":"#16a34a"}">`+
+   (anyOccupied?"⚠ This area overlaps existing mapped parcel(s)":"✓ Clear - no mapped parcel found here")+"</div>";
+  _shownLayers.forEach((l,i)=>{
+   const r=results[i],matches=r.matches||[];
+   html+=`<div class="occLayerRow"><span class="occName">${prettyLayerName(l.id,l.name)}</span>`+
+    `<span class="occBadge ${matches.length?"occupied":"clear"}">${matches.length?matches.length+" match"+(matches.length>1?"es":""):"Clear"}</span>`;
+   matches.forEach(m=>{
+    html+=`<div class="occMatch"><span>${m.label}${m.county?" · "+m.county:""} (${Math.round(m.area_acres).toLocaleString()} ac)</span>`+
+     `<button data-bbox='${JSON.stringify(m.bbox)}' class="occZoom">Zoom</button></div>`;
+   });
+   html+="</div>";
+  });
+  box.innerHTML=html;
+  box.querySelectorAll(".occZoom").forEach(b=>b.onclick=()=>{fitBbox(JSON.parse(b.dataset.bbox),60);$("occupancy").style.display="none"});
+ }catch(e){box.innerHTML='<div style="color:#c0392b">Could not check: '+e.message+'</div>'}
+ finally{btn.disabled=false;btn.textContent=orig;}
+};
+
+const LOGIN_MSG="";
+const COLORS=["#3b82f6","#ef4444","#10b981","#f59e0b","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#6366f1"];
+const LAYER_LABELS={eegd:"Eleemosynary",plsd:"Public Land",dgd:"Development Grant",sgld:"Government Land",scld:"Customary Land"};
+const NAME_COLS=new Set(["name","label","parcel_name","title"]);
+function prettyLayerName(id,fallback){
+ const table=(id||"").split(".").pop();
+ return LAYER_LABELS[table]||fallback||id;
+}
+
+const BASEMAPS={
+ streets:{tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],tileSize:256,attribution:"© OpenStreetMap contributors"},
+ satellite:{tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],tileSize:256,attribution:"© Esri, Maxar, Earthstar Geographics"},
+ light:{tiles:["https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png","https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png","https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"],tileSize:256,attribution:"© CARTO © OpenStreetMap contributors"},
+ dark:{tiles:["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],tileSize:256,attribution:"© CARTO © OpenStreetMap contributors"},
+ terrain:{tiles:["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],tileSize:256,attribution:"© OpenTopoMap contributors"}
+};
+function setBasemap(key){
+ const b=BASEMAPS[key]||BASEMAPS.streets;
+ if(map.getLayer("osm")) map.removeLayer("osm");
+ if(map.getSource("osm")) map.removeSource("osm");
+ map.addSource("osm",{type:"raster",tiles:b.tiles,tileSize:b.tileSize,attribution:b.attribution});
+ const first=(map.getStyle().layers||[]).find(l=>l.id!=="osm");
+ map.addLayer({id:"osm",type:"raster",source:"osm"},first?first.id:undefined);
+}
+$("basemapSel").onchange=()=>setBasemap($("basemapSel").value);
+
+// ---- every accessible layer is rendered on the map at once; the dropdown only scopes the stats panel ----
+let currentLayer=null, currentIdField="ogc_fid", currentBounds=null;
+let selectedCounty=null;
+const qc=()=>selectedCounty?`&county=${encodeURIComponent(selectedCounty)}`:"";
+
+function renderMapLayer(id,color,on){
+ const src="L:"+id,base={source:src,"source-layer":id};
+ for(const k of ["fill","line","pt"]) if(map.getLayer(`${src}:${k}`)) map.removeLayer(`${src}:${k}`);
+ if(map.getSource(src)) map.removeSource(src);
+ if(!on)return;
+ map.addSource(src,{type:"vector",tiles:[`${location.origin}${TILES}/${id}/{z}/{x}/{y}.pbf`]});
+ // Zoom-based styling so a zoomed-out view of many layers at once (all of Liberia) isn't a
+ // solid wash of overlapping color - fills, outlines and points fade in as you zoom into an area.
+ map.addLayer({...base,id:`${src}:fill`,type:"fill",filter:["==","$type","Polygon"],
+  paint:{"fill-color":color,"fill-opacity":["interpolate",["linear"],["zoom"],5,0.10,8,0.18,11,0.28,14,0.38,17,0.48]}});
+ map.addLayer({...base,id:`${src}:line`,type:"line",filter:["!=","$type","Point"],
+  paint:{"line-color":color,"line-width":["interpolate",["linear"],["zoom"],5,0.25,8,0.5,11,0.9,14,1.4,17,2.2]}});
+ map.addLayer({...base,id:`${src}:pt`,type:"circle",filter:["==","$type","Point"],
+  paint:{"circle-radius":["interpolate",["linear"],["zoom"],5,1.5,8,2.5,11,3.5,14,5,17,7],
+         "circle-color":color,"circle-opacity":["interpolate",["linear"],["zoom"],5,0.35,8,0.55,11,0.75,14,0.9]}});
+}
+function removeAllMapLayers(){
+ if(!map.getStyle())return;
+ for(const l of map.getStyle().layers) if(l.id.startsWith("L:")) map.removeLayer(l.id);
+ for(const id of Object.keys(map.getStyle().sources)) if(id.startsWith("L:")) map.removeSource(id);
+ $("legend").style.display="none";$("lList").textContent="";
+}
+function setSelSource(layerId){
+ for(const id of ["sel-fill","sel-line"]) if(map.getLayer(id)) map.removeLayer(id);
+ if(map.getSource("SEL")) map.removeSource("SEL");
+ if(!layerId)return;
+ map.addSource("SEL",{type:"vector",tiles:[`${location.origin}${TILES}/${layerId}/{z}/{x}/{y}.pbf`]});
+ map.addLayer({id:"sel-fill",type:"fill",source:"SEL","source-layer":layerId,filter:["==",["get",currentIdField],"__none__"],paint:{"fill-color":"#fbbf24","fill-opacity":0.55}});
+ map.addLayer({id:"sel-line",type:"line",source:"SEL","source-layer":layerId,filter:["==",["get",currentIdField],"__none__"],paint:{"line-color":"#f59e0b","line-width":3}});
+}
+function fitBbox(b,padding){
+ if(!b)return;
+ map.fitBounds([[b.xmin,b.ymin],[b.xmax,b.ymax]],{padding:padding||40,maxZoom:16});
+}
+function clearSelection(){
+ if(map.getLayer("sel-fill")){map.setFilter("sel-fill",["==",["get",currentIdField],"__none__"]);map.setFilter("sel-line",["==",["get",currentIdField],"__none__"])}
+ if(currentBounds) map.fitBounds(currentBounds,{padding:40});
+}
+function selectGroup(group,label,bbox){
+ const f=label==="(blank)"?["!",["to-boolean",["get",group]]]:["==",["get",group],label];
+ map.setFilter("sel-fill",f);map.setFilter("sel-line",f);
+ fitBbox(bbox,40);
+}
+function selectFeature(id,bbox){
+ const f=["==",["get",currentIdField],id];
+ map.setFilter("sel-fill",f);map.setFilter("sel-line",f);
+ fitBbox(bbox,60);
+}
+$("clearSel").onclick=clearSelection;
+function bboxFromGeometry(geom){
+ let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;
+ const walk=c=>{if(typeof c[0]==="number"){xmin=Math.min(xmin,c[0]);xmax=Math.max(xmax,c[0]);ymin=Math.min(ymin,c[1]);ymax=Math.max(ymax,c[1])}else c.forEach(walk)};
+ walk(geom.coordinates);
+ return {xmin,ymin,xmax,ymax};
+}
+function setCountyFilter(name,geom){
+ selectedCounty=name;
+ $("countyFilterName").textContent=name;
+ $("countyFilter").style.display="flex";
+ if(geom) fitBbox(bboxFromGeometry(geom),40);
+ refreshStats().catch(e=>say("Could not load charts: "+e.message,true));
+}
+function clearCountyFilter(){
+ selectedCounty=null;
+ $("countyFilter").style.display="none";
+ clearSelection();
+ refreshStats().catch(e=>say("Could not load charts: "+e.message,true));
+}
+$("clearCountyFilter").onclick=clearCountyFilter;
+
+// Liberia's total land area (CIA World Factbook: ~96,320 km^2 land, excluding inland water) expressed in acres.
+const LIBERIA_LAND_ACRES = 96320 * 247.105;
+const LIBERIA_COUNTY_COUNT = 15;
+let natChart;
+let _shownLayers=[];
+async function computeNationalTotals(shown){
+ if(!shown.length){$("natCard").style.display="none";return}
+ try{
+  const results=await Promise.all(shown.map(l=>
+   getJ(`/stats/summary?layer=${encodeURIComponent(l.id)}`).catch(()=>({parcels:0,acres:0}))
+  ));
+  const totalParcels=results.reduce((a,r)=>a+(r.parcels||0),0);
+  const totalAcres=results.reduce((a,r)=>a+(r.acres||0),0);
+  const pct=(totalAcres/LIBERIA_LAND_ACRES)*100;
+  $("natParcels").textContent=totalParcels.toLocaleString();
+  $("natAcres").textContent=Math.round(totalAcres).toLocaleString();
+  $("natPct").textContent=(pct>0&&pct<0.01?"<0.01":pct.toFixed(2))+"%";
+
+  const labels=shown.map((l,i)=>prettyLayerName(l.id,l.name));
+  const colors=shown.map((_,i)=>COLORS[i%COLORS.length]);
+  const data=results.map(r=>r.acres||0);
+  natChart&&natChart.destroy();
+  if(totalAcres>0){
+   // Doughnut with a raised drop-shadow on its wrapper (.natDoughnutWrap) for a "3D" feel,
+   // a slice that pops out on hover, and the overall % of Liberia shown in the cut-out center.
+   natChart=new Chart($("natDoughnut"),{type:"doughnut",
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:"#fff",hoverOffset:14,hoverBorderWidth:3}]},
+    options:{maintainAspectRatio:false,cutout:"66%",
+     animation:{animateScale:true,animateRotate:true},
+     plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:(ctx)=>{
+       const v=ctx.parsed,share=totalAcres?(v/totalAcres*100):0;
+       return `${ctx.label}: ${Math.round(v).toLocaleString()} ac (${share.toFixed(1)}%)`;
+      }}}}}});
+  }
+  const legendBox=$("natLegend");legendBox.textContent="";
+  shown.forEach((l,i)=>{
+   const acres=(results[i]&&results[i].acres)||0;
+   const share=totalAcres?(acres/totalAcres*100):0;
+   const row=document.createElement("div");row.className="natLegRow";
+   const sw=document.createElement("span");sw.className="sw";sw.style.background=colors[i];
+   const nm=document.createElement("span");nm.className="natLegName";nm.textContent=labels[i];
+   const pc=document.createElement("span");pc.className="natLegPct";pc.textContent=share.toFixed(1)+"%";
+   row.append(sw,nm,pc);legendBox.appendChild(row);
+  });
+
+  // ---- extra at-a-glance stats ----
+  $("statLayers").textContent=shown.length.toLocaleString();
+  $("statAvg").textContent=totalParcels?Math.round(totalAcres/totalParcels).toLocaleString():"-";
+  if(data.length){
+   const maxIdx=data.indexOf(Math.max(...data));
+   $("statLargest").textContent=labels[maxIdx]||"-";
+  }else $("statLargest").textContent="-";
+  countiesCovered(shown).then(n=>{$("statCounties").textContent=`${n} / ${LIBERIA_COUNTY_COUNT}`}).catch(()=>{$("statCounties").textContent="-"});
+  drawNationalYearChart(shown);
+
+  $("natCard").style.display="block";
+  _lastNatTotals={labels,colors,data,totalParcels,totalAcres,pct};
+ }catch(e){$("natCard").style.display="none"}
+}
+let _lastNatTotals=null;
+async function countiesCovered(shown){
+ // Union of distinct county names across every layer that has a county column - each request
+ // fails harmlessly (400) for a layer without one, so a plain catch turns it into "no counties here".
+ const lists=await Promise.all(shown.map(l=>
+  getJ(`/stats/by?layer=${encodeURIComponent(l.id)}&group=county&metric=count&limit=50`).catch(()=>[])
+ ));
+ const names=new Set();
+ for(const rows of lists) for(const r of rows) if(r.label&&r.label!=="(blank)") names.add(r.label.trim().toUpperCase());
+ return names.size;
+}
+let natYearChart;
+async function drawNationalYearChart(shown){
+ try{
+  const lists=await Promise.all(shown.map(l=>getJ(`/stats/timeline?layer=${encodeURIComponent(l.id)}`).catch(()=>[])));
+  const yearsSet=new Set();
+  lists.forEach(rows=>rows.forEach(r=>yearsSet.add(r.year)));
+  const years=[...yearsSet].sort((a,b)=>a-b);
+  natYearChart&&natYearChart.destroy();
+  if(!years.length){$("natYearWrap").style.display="none";return}
+  $("natYearWrap").style.display="block";
+  // One stacked series per layer, so the bar height is the yearly total and the
+  // colored segments show which layer categories that year's surveys came from.
+  const datasets=shown.map((l,i)=>{
+   const byYear={};lists[i].forEach(r=>{byYear[r.year]=r.parcels});
+   return {label:prettyLayerName(l.id,l.name),data:years.map(y=>byYear[y]||0),backgroundColor:COLORS[i%COLORS.length],
+    barPercentage:1.0,categoryPercentage:0.98};
+  });
+  natYearChart=new Chart($("natYearChart"),{type:"bar",
+   data:{labels:years,datasets},
+   options:{maintainAspectRatio:false,
+    scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true}},
+    plugins:{
+     legend:{display:true,position:"bottom",labels:{color:"#334155",boxWidth:10,boxHeight:10,padding:7,font:{size:9.5}}},
+     tooltip:{callbacks:{label:(ctx)=>`${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} surveyed`}}
+    }}});
+ }catch(e){$("natYearWrap").style.display="none"}
+}
+async function loadLayerList(){
+ $("lList").innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading layers…</div>';
+ _loadStart();
+ try{
+  const [ri,ra]=await Promise.all([fetch(`${TILES}/index.json`,{headers:H()}),fetch(`${API}/layers/access`,{headers:H()})]);
+  if(!ri.ok||!ra.ok) throw new Error(`server said ${ri.ok?ra.status:ri.status}`);
+  const j=await ri.json(),viewers=new Set((await ra.json()).viewers);
+  const admin=myRole==="admin"||myRole==="super_admin",isSuperAdmin=myRole==="super_admin";
+  const all=(Array.isArray(j)?j:(j.layers||Object.values(j))).filter(l=>l.schema==="public"&&l.id);
+  const shown=all.filter(l=>admin||viewers.has(l.id));
+  _shownLayers=shown;
+  const sel=$("layerSel");
+  sel.textContent="";
+  sel.appendChild(new Option("Select a layer for stats...",""));
+  const box=$("lList");box.textContent="";
+  shown.forEach((l,i)=>{
+   const color=COLORS[i%COLORS.length],pretty=prettyLayerName(l.id,l.name);
+   sel.appendChild(new Option(pretty,l.id));
+   const row=document.createElement("div");row.className="lrow";
+   const cb=document.createElement("input");cb.type="checkbox";cb.checked=true;
+   cb.onchange=()=>renderMapLayer(l.id,color,cb.checked);
+   const sw=document.createElement("span");sw.className="sw";sw.style.background=color;
+   const nm=document.createElement("span");nm.className="lname";nm.textContent=pretty;
+   const zm=document.createElement("button");zm.textContent="Zoom";
+   zm.onclick=async()=>{const r=await fetch(`${TILES}/${l.id}.json`,{headers:H()});if(r.ok)map.fitBounds((await r.json()).bounds,{padding:40})};
+   row.append(cb,sw,nm,zm);
+   if(isSuperAdmin){
+    const v=document.createElement("label");v.className="vw";
+    const vc=document.createElement("input");vc.type="checkbox";vc.checked=viewers.has(l.id);
+    vc.onchange=async()=>{const r=await fetch(`${API}/layers/access/${l.id}?viewers=${vc.checked}`,{method:"PUT",headers:H()});if(!r.ok){vc.checked=!vc.checked;say("Could not change access",true)}};
+    v.append(vc," Viewers");row.append(v);
+   }
+   box.appendChild(row);
+   renderMapLayer(l.id,color,true);
+  });
+  $("legend").style.display=shown.length?"block":"none";
+  if(!shown.length) say(admin?"No spatial tables found in the public schema":"No layers have been shared with you yet",true);
+  else{
+   const allBounds=await Promise.all(shown.map(l=>fetch(`${TILES}/${l.id}.json`,{headers:H()}).then(r=>r.ok?r.json():null).catch(()=>null)));
+   const boxes=allBounds.filter(Boolean).map(t=>t.bounds).filter(Boolean);
+   if(boxes.length){
+    const xmin=Math.min(...boxes.map(b=>b[0])),ymin=Math.min(...boxes.map(b=>b[1]));
+    const xmax=Math.max(...boxes.map(b=>b[2])),ymax=Math.max(...boxes.map(b=>b[3]));
+    map.fitBounds([[xmin,ymin],[xmax,ymax]],{padding:40});
+   }
+   computeNationalTotals(shown);
+  }
+ }catch(e){say("Could not load layers: "+e.message,true);$("lList").innerHTML="";}
+ finally{_loadEnd();}
+}
+$("layerSel").onchange=()=>activateLayer($("layerSel").value);
+async function activateLayer(layerId){
+ currentLayer=layerId||null;
+ if(!layerId){
+  setSelSource(null);hideCharts();selectedCounty=null;$("countyFilter").style.display="none";
+  return;
+ }
+ setSelSource(layerId);
+ logEvent("layer.view",prettyLayerName(layerId,layerId));
+ try{
+  const tj=await(await fetch(`${TILES}/${layerId}.json`,{headers:H()})).json();
+  currentBounds=tj.bounds;if(currentBounds) map.fitBounds(currentBounds,{padding:40});
+ }catch(e){}
+ await refreshStats();
+}
+
+map.on("error",e=>{if(token&&e.error&&e.error.status===401)say("Session expired - please log out and log in again",true)});
+map.on("click",e=>{
+ if(measuring){measurePts.push([e.lngLat.lng,e.lngLat.lat]);redrawMeasure();return;}
+ if(map.getLayer("adm-counties-fill")){
+  const cf=map.queryRenderedFeatures(e.point,{layers:["adm-counties-fill"]})[0];
+  if(cf&&cf.properties&&cf.properties.name){setCountyFilter(cf.properties.name,cf.geometry);return}
+ }
+ const ids=(map.getStyle()?.layers||[]).map(l=>l.id).filter(id=>id.startsWith("L:"));
+ if(!ids.length)return;
+ const f=map.queryRenderedFeatures(e.point,{layers:ids})[0];
+ if(!f)return;
+ const layerId=f.layer.source.slice(2);
+ const menu=buildFeatureMenu(layerId,f);
+ new maplibregl.Popup({closeButton:true,maxWidth:"260px"}).setLngLat(e.lngLat).setDOMContent(menu).addTo(map);
+});
+function copyToClipboard(text,label){
+ if(!navigator.clipboard){say("Clipboard not available in this browser",true);return}
+ navigator.clipboard.writeText(String(text)).then(()=>{say(`Copied ${label}`);setTimeout(()=>say(""),1500)}).catch(()=>say("Could not copy",true));
+}
+function buildFeatureMenu(layerId,f){
+ const wrap=document.createElement("div");wrap.className="ctxMenu";
+ const head=document.createElement("div");head.className="ctxHead";head.textContent=prettyLayerName(layerId);wrap.appendChild(head);
+
+ const actions=document.createElement("div");actions.className="ctxActions";
+ const zoomBtn=document.createElement("button");zoomBtn.type="button";zoomBtn.textContent="🔍 Zoom to feature";
+ zoomBtn.onclick=()=>{try{const b=bboxFromGeometry(f.geometry);map.fitBounds([[b.xmin,b.ymin],[b.xmax,b.ymax]],{padding:60,maxZoom:17})}catch(err){}};
+ actions.appendChild(zoomBtn);
+
+ const idKey=Object.keys(f.properties).find(k=>["ogc_fid","gid","id","fid"].includes(k.toLowerCase()));
+ if(idKey){
+  const copyIdBtn=document.createElement("button");copyIdBtn.type="button";copyIdBtn.textContent="📋 Copy Feature ID";
+  copyIdBtn.onclick=()=>copyToClipboard(f.properties[idKey],"feature ID");
+  actions.appendChild(copyIdBtn);
+ }
+ const detailsBtn=document.createElement("button");detailsBtn.type="button";detailsBtn.textContent="🗂 Full details";
+ detailsBtn.onclick=()=>openParcelDrawer(layerId,f);
+ actions.appendChild(detailsBtn);
+ if(isStaff()){
+  const nameKey=Object.keys(f.properties).find(k=>NAME_COLS.has(k.toLowerCase()));
+  if(nameKey&&f.properties[nameKey]){
+   const copyNameBtn=document.createElement("button");copyNameBtn.type="button";copyNameBtn.textContent="📋 Copy Name";
+   copyNameBtn.onclick=()=>copyToClipboard(f.properties[nameKey],"name");
+   actions.appendChild(copyNameBtn);
+  }
+ }
+ wrap.appendChild(actions);
+
+ const props=document.createElement("div");props.className="ctxProps";
+ for(const [k,v] of Object.entries(f.properties)){
+  if(!isStaff()&&NAME_COLS.has(k.toLowerCase()))continue;
+  const p=document.createElement("div");p.textContent=`${k}: ${v}`;props.appendChild(p);
+ }
+ wrap.appendChild(props);
+ return wrap;
+}
+
+function openParcelDrawer(layerId,f){
+ $("pdLayer").textContent=prettyLayerName(layerId);
+ const idKey=Object.keys(f.properties).find(k=>["ogc_fid","gid","id","fid"].includes(k.toLowerCase()));
+ $("pdSub").textContent=idKey?`Feature #${f.properties[idKey]}`:"";
+ const actions=$("pdActions");actions.innerHTML="";
+ const zoomBtn=document.createElement("button");zoomBtn.textContent="🔍 Zoom";
+ zoomBtn.onclick=()=>{try{const b=bboxFromGeometry(f.geometry);map.fitBounds([[b.xmin,b.ymin],[b.xmax,b.ymax]],{padding:60,maxZoom:17})}catch(err){}};
+ actions.appendChild(zoomBtn);
+ if(featureOn("parcel_certificate")){
+  const certBtn=document.createElement("button");certBtn.textContent="🖨 Print certificate";
+  certBtn.onclick=()=>printParcelCertificate(layerId,f);
+  actions.appendChild(certBtn);
+ }
+ const props=$("pdProps");props.innerHTML="";
+ for(const [k,v] of Object.entries(f.properties)){
+  if(!isStaff()&&NAME_COLS.has(k.toLowerCase()))continue;
+  const row=document.createElement("div");
+  row.innerHTML=`<b>${esc(k)}:</b> ${esc(v)}`;
+  props.appendChild(row);
+ }
+ $("parcelDrawer").classList.add("open");
+ logEvent("layer.parcel_detail",prettyLayerName(layerId,layerId));
+}
+$("pdClose").onclick=()=>{$("parcelDrawer").classList.remove("open")};
+
+function printParcelCertificate(layerId,f){
+ const idKey=Object.keys(f.properties).find(k=>["ogc_fid","gid","id","fid"].includes(k.toLowerCase()));
+ const nameKey=Object.keys(f.properties).find(k=>NAME_COLS.has(k.toLowerCase()));
+ const areaKey=Object.keys(f.properties).find(k=>k.toLowerCase().includes("area"));
+ const countyKey=Object.keys(f.properties).find(k=>k.toLowerCase()==="county");
+ const featureId=idKey?f.properties[idKey]:"—";
+ const name=(isStaff()&&nameKey)?f.properties[nameKey]:null;
+ const area=areaKey?Number(f.properties[areaKey]):null;
+ const county=countyKey?f.properties[countyKey]:null;
+ const refNo=`LLA-${layerId.split(".").pop().slice(0,4).toUpperCase()}-${featureId}`;
+ const w=window.open("","_blank");
+ w.document.write(`<!DOCTYPE html><html><head><title>Land Information Certificate — ${esc(refNo)}</title>
+ <style>
+  body{font-family:"Segoe UI",system-ui,sans-serif;color:#111827;margin:0;padding:40px}
+  .cert{max-width:640px;margin:0 auto;border:3px solid #0b2545;border-radius:10px;padding:36px}
+  .certHead{text-align:center;border-bottom:2px solid #e8b923;padding-bottom:16px;margin-bottom:20px}
+  .certHead h1{color:#0b2545;font-size:19px;margin:6px 0 2px}
+  .certHead p{color:#666;font-size:11.5px;margin:0;text-transform:uppercase;letter-spacing:.5px}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  td{padding:8px 4px;border-bottom:1px solid #e5e7eb;font-size:13.5px}
+  td.label{color:#666;width:40%}
+  td.val{font-weight:600;color:#0b2545}
+  .refNo{text-align:center;margin-top:24px;font-size:12px;color:#888}
+  .sig{display:flex;justify-content:space-between;margin-top:50px}
+  .sig div{width:45%;border-top:1px solid #333;text-align:center;padding-top:6px;font-size:11px;color:#555}
+  @media print{button{display:none}}
+ </style></head><body>
+ <div class="cert">
+  <div class="certHead">
+   <h1>Liberia Land Authority</h1>
+   <p>Land Information Certificate</p>
+  </div>
+  <table>
+   <tr><td class="label">Layer</td><td class="val">${esc(prettyLayerName(layerId,layerId))}</td></tr>
+   <tr><td class="label">Feature ID</td><td class="val">${esc(featureId)}</td></tr>
+   ${name?`<tr><td class="label">Name</td><td class="val">${esc(name)}</td></tr>`:""}
+   ${county?`<tr><td class="label">County</td><td class="val">${esc(county)}</td></tr>`:""}
+   ${area!=null&&!isNaN(area)?`<tr><td class="label">Area</td><td class="val">${Math.round(area).toLocaleString()} acres</td></tr>`:""}
+   <tr><td class="label">Issued</td><td class="val">${new Date().toLocaleDateString()}</td></tr>
+  </table>
+  <div class="refNo">Reference: ${esc(refNo)} &nbsp;|&nbsp; Issued by ${esc(myEmail||"—")}</div>
+  <div class="sig">
+   <div>Authorized signature</div>
+   <div>Official stamp</div>
+  </div>
+ </div>
+ <script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script>
+ </body></html>`);
+ w.document.close();
+ logEvent("report.print_certificate",prettyLayerName(layerId,layerId));
+}
+
+let byChart,byData=[];
+const opts=(extra)=>({maintainAspectRatio:false,plugins:{legend:{display:false}},...extra});
+async function loadGroups(){
+ const groups=await getJ(`/stats/groups?layer=${encodeURIComponent(currentLayer)}`);
+ const sel=$("grp"),prev=sel.value;sel.textContent="";
+ groups.forEach(g=>{const o=document.createElement("option");o.value=g;o.textContent=g.replace(/_/g," ");sel.appendChild(o)});
+ if(groups.includes(prev)) sel.value=prev;
+ else if(groups.includes("county")) sel.value="county";
+ return groups.length>0;
+}
+async function drawBy(){
+ if(!$("grp").options.length){byChart&&byChart.destroy();byChart=null;return}
+ const group=$("grp").value,layer=currentLayer;
+ byData=await getJ(`/stats/by?layer=${encodeURIComponent(layer)}&group=${encodeURIComponent(group)}&metric=${$("met").value}${qc()}`);
+ byChart&&byChart.destroy();
+ byChart=new Chart($("byChart"),{type:"bar",data:{labels:byData.map(x=>x.label),datasets:[{data:byData.map(x=>x.value),backgroundColor:byData.map((_,i)=>COLORS[i%COLORS.length])}]},
+  options:opts({indexAxis:"y",onClick:async(evt,els)=>{
+   if(!els.length)return;
+   const row=byData[els[0].index];
+   try{
+    const b=await getJ(`/stats/bbox?layer=${encodeURIComponent(layer)}&group=${encodeURIComponent(group)}&value=${encodeURIComponent(row.label)}${qc()}`);
+    if(group==="county"&&row.label!=="(blank)") setCountyFilter(row.label,null);
+    selectGroup(group,row.label,b);
+   }
+   catch(e){say("Could not locate that group on the map",true)}
+  }})});
+}
+function parcelFilterParams(){
+ const q=($("parcelSearch").value||"").trim();
+ const mn=$("parcelMinAcres").value;
+ const mx=$("parcelMaxAcres").value;
+ let p="";
+ if(q)p+=`&q=${encodeURIComponent(q)}`;
+ if(mn!=="")p+=`&min_acres=${encodeURIComponent(mn)}`;
+ if(mx!=="")p+=`&max_acres=${encodeURIComponent(mx)}`;
+ return p;
+}
+async function drawParcelTable(){
+ const fp=parcelFilterParams();
+ const isFiltering=fp.length>0;
+ $("clearParcelFilter").style.display=isFiltering?"inline":"none";
+ const lim=isFiltering?100:15;
+ $("parcelEmpty").style.display="none";
+ $("parcelBody").innerHTML='<tr><td colspan="3"><div class="loadingRow"><span class="spinner"></span>Loading…</div></td></tr>';
+ const {idField,rows}=await getJ(`/stats/parcels?layer=${encodeURIComponent(currentLayer)}&limit=${lim}${qc()}${fp}`);
+ currentIdField=idField||"ogc_fid";
+ $("parcelColHead").textContent=isStaff()?"Feature":"Feature ID";
+ const body=$("parcelBody");body.textContent="";
+ $("parcelEmpty").style.display=rows.length?"none":"block";
+ rows.forEach((row,i)=>{
+  const tr=document.createElement("tr");
+  const t1=document.createElement("td");
+  const dot=document.createElement("span");dot.className="pdot";dot.style.background=COLORS[i%COLORS.length];
+  t1.appendChild(dot);t1.appendChild(document.createTextNode(row.label));
+  const t2=document.createElement("td");t2.textContent=row.county||"";
+  const t3=document.createElement("td");t3.className="num";t3.textContent=Math.round(row.area_acres).toLocaleString();
+  tr.append(t1,t2,t3);
+  tr.onclick=()=>selectFeature(row.id,row.bbox);
+  body.appendChild(tr);
+ });
+}
+let _parcelDebounce=null;
+function debouncedParcelRefresh(){
+ clearTimeout(_parcelDebounce);
+ _parcelDebounce=setTimeout(()=>{drawParcelTable().catch(e=>say("Could not load parcels: "+e.message,true))},300);
+}
+$("parcelSearch").oninput=debouncedParcelRefresh;
+$("parcelMinAcres").oninput=debouncedParcelRefresh;
+$("parcelMaxAcres").oninput=debouncedParcelRefresh;
+$("clearParcelFilter").onclick=()=>{
+ $("parcelSearch").value="";$("parcelMinAcres").value="";$("parcelMaxAcres").value="";
+ drawParcelTable().catch(e=>say("Could not load parcels: "+e.message,true));
+};
+async function refreshStats(){
+ if(!currentLayer)return;
+ try{
+  const s=await getJ(`/stats/summary?layer=${encodeURIComponent(currentLayer)}${qc()}`);
+  $("cParcels").textContent=s.parcels.toLocaleString();$("cAcres").textContent=Math.round(s.acres).toLocaleString();
+  $("cParcelsLbl").textContent=selectedCounty?`parcels in ${selectedCounty}`:"parcels";
+  $("charts").style.display="block";
+  await loadGroups();
+  await drawBy();await drawParcelTable();
+ }catch(e){if(!String(e.message).includes("403"))say("Could not load charts: "+e.message,true)}
+}
+const hideCharts=()=>{$("charts").style.display="none"};
+$("grp").onchange=$("met").onchange=()=>drawBy().catch(e=>say("Chart error: "+e.message,true));
+
+// ---- CSV export & printable report ----
+function csvCell(v){
+ v=v==null?"":String(v);
+ return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+}
+function downloadBlob(filename,mime,text){
+ const blob=new Blob([text],{type:mime});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+$("exportCsvBtn").onclick=async()=>{
+ if(!currentLayer)return say("Select a layer first",true);
+ const btn=$("exportCsvBtn"),orig=btn.textContent;
+ btn.disabled=true;btn.textContent="Exporting…";
+ logEvent("export.csv",prettyLayerName(currentLayer,currentLayer));
+ try{
+  const fp=parcelFilterParams();
+  const {rows}=await getJ(`/stats/parcels?layer=${encodeURIComponent(currentLayer)}&limit=5000${qc()}${fp}`);
+  const header=["Feature","County","Acres"];
+  const lines=[header.map(csvCell).join(",")];
+  rows.forEach(r=>lines.push([r.label,r.county||"",Math.round(r.area_acres)].map(csvCell).join(",")));
+  const name=prettyLayerName(currentLayer,currentLayer).replace(/[^a-z0-9]+/gi,"_");
+  downloadBlob(`${name}_parcels_${new Date().toISOString().slice(0,10)}.csv`,"text/csv","﻿"+lines.join("\n"));
+ }catch(e){say("Could not export CSV: "+e.message,true)}
+ finally{btn.disabled=false;btn.textContent=orig;}
+};
+$("printReportBtn").onclick=async()=>{
+ if(!currentLayer)return say("Select a layer first",true);
+ const btn=$("printReportBtn"),orig=btn.textContent;
+ btn.disabled=true;btn.textContent="Preparing…";
+ logEvent("report.print",prettyLayerName(currentLayer,currentLayer));
+ try{
+  const layerName=prettyLayerName(currentLayer,currentLayer);
+  const fp=parcelFilterParams();
+  const {rows}=await getJ(`/stats/parcels?layer=${encodeURIComponent(currentLayer)}&limit=200${qc()}${fp}`);
+  const byImg=$("byChart")?$("byChart").toDataURL("image/png"):"";
+  const natImg=$("natDoughnut")?$("natDoughnut").toDataURL("image/png"):"";
+  const nat=_lastNatTotals;
+  const rowsHtml=rows.map(r=>`<tr><td>${r.label}</td><td>${r.county||""}</td><td style="text-align:right">${Math.round(r.area_acres).toLocaleString()}</td></tr>`).join("");
+  const natRowsHtml=nat?nat.labels.map((l,i)=>`<tr><td><span style="display:inline-block;width:10px;height:10px;background:${nat.colors[i]};border-radius:2px;margin-right:6px"></span>${l}</td><td style="text-align:right">${Math.round(nat.data[i]).toLocaleString()} ac</td><td style="text-align:right">${nat.totalAcres?((nat.data[i]/nat.totalAcres)*100).toFixed(1):"0.0"}%</td></tr>`).join(""):"";
+  const w=window.open("","_blank");
+  w.document.write(`<!DOCTYPE html><html><head><title>${layerName} — LLA Land Information Report</title>
+  <style>
+   body{font-family:"Segoe UI",system-ui,sans-serif;color:#111827;margin:30px}
+   h1{color:#0b2545;font-size:22px;margin-bottom:2px}
+   h2{color:#123a6b;font-size:16px;margin:22px 0 8px;border-bottom:2px solid #e8b923;padding-bottom:4px}
+   .meta{color:#666;font-size:12px;margin-bottom:18px}
+   table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+   th,td{padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:left}
+   th{background:#f3f6fb;color:#0b2545}
+   .kpis{display:flex;gap:16px;margin:10px 0}
+   .kpi{flex:1;background:#f6f8fb;border-radius:8px;padding:10px 14px}
+   .kpi b{display:block;font-size:18px;color:#0b2545}
+   img{max-width:340px;display:block;margin:8px 0}
+   @media print{button{display:none}}
+  </style></head><body>
+  <h1>LLA Land Information Dashboard — Report</h1>
+  <div class="meta">Layer: <b>${layerName}</b> &nbsp;|&nbsp; Generated ${new Date().toLocaleString()} by ${myEmail||"—"}${selectedCounty?` &nbsp;|&nbsp; County filter: <b>${selectedCounty}</b>`:""}</div>
+  <div class="kpis">
+   <div class="kpi"><b>${$("cParcels").textContent}</b>Parcels</div>
+   <div class="kpi"><b>${$("cAcres").textContent}</b>Acres</div>
+  </div>
+  <h2>Layer breakdown</h2>
+  ${byImg?`<img src="${byImg}">`:""}
+  <h2>Top features by area${fp?" (filtered)":""}</h2>
+  <table><thead><tr><th>Feature</th><th>County</th><th style="text-align:right">Acres</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+  ${nat?`<h2>National totals — all layers</h2>
+  <div class="kpis">
+   <div class="kpi"><b>${nat.totalParcels.toLocaleString()}</b>Total parcels</div>
+   <div class="kpi"><b>${Math.round(nat.totalAcres).toLocaleString()}</b>Total acres</div>
+   <div class="kpi"><b>${(nat.pct>0&&nat.pct<0.01?"<0.01":nat.pct.toFixed(2))}%</b>of Liberia's land area</div>
+  </div>
+  ${natImg?`<img src="${natImg}">`:""}
+  <table><thead><tr><th>Layer</th><th style="text-align:right">Acres</th><th style="text-align:right">Share</th></tr></thead><tbody>${natRowsHtml}</tbody></table>`:""}
+  <script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script>
+  </body></html>`);
+  w.document.close();
+ }catch(e){say("Could not build report: "+e.message,true)}
+ finally{btn.disabled=false;btn.textContent=orig;}
+};
+
+// ---- fancy full-screen auth page ----
+let authMode="login";
+function setAuthMode(mode){
+ authMode=mode;
+ [...$("authTabs").children].forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
+ $("authSubmit").textContent=mode==="login"?"Log in":"Create account";
+ $("password").placeholder=mode==="login"?"password":"password (min 8 chars)";
+ $("password").autocomplete=mode==="login"?"current-password":"new-password";
+ authSay("");
+}
+[...$("authTabs").children].forEach(b=>b.onclick=()=>setAuthMode(b.dataset.mode));
+let myEmail="";
+// Fire-and-forget analytics event: never lets a logging hiccup interrupt the actual feature.
+function logEvent(action,detail){
+ if(!token)return;
+ fetch(`${API}/activity/log`,{method:"POST",headers:{...H(),"Content-Type":"application/json"},
+  body:JSON.stringify({action,detail:detail||null})}).catch(()=>{});
+}
+let _heartbeatTimer=null;
+function startHeartbeat(){
+ stopHeartbeat();
+ const beat=()=>{if(token)fetch(`${API}/activity/heartbeat`,{method:"POST",headers:H()}).catch(()=>{})};
+ beat();
+ _heartbeatTimer=setInterval(beat,60000);
+}
+function stopHeartbeat(){if(_heartbeatTimer){clearInterval(_heartbeatTimer);_heartbeatTimer=null;}}
+let featureFlags={};
+function featureOn(key){return featureFlags[key]!==false}
+function applyFeatureFlags(){
+ $("locSearchBox").style.display=featureOn("location_search")?"":"none";
+ $("measureBtn").style.display=featureOn("measure_tool")?"":"none";
+ $("occupancyBtn").style.display=featureOn("occupancy_check")?"":"none";
+ $("compareBtn").style.display=featureOn("compare_counties")?"":"none";
+ $("locateBtn").style.display=featureOn("my_location")?"":"none";
+ $("bookmarksBtn").style.display=featureOn("bookmarks")?"":"none";
+ $("exportMapBtn").style.display=featureOn("map_export")?"":"none";
+ if(isStaff()){
+  $("activityBtn").style.display=featureOn("analytics")?"inline-block":"none";
+  const showExport=featureOn("export_csv"),showPrint=featureOn("report_print");
+  $("adminExportRow").style.display=(showExport||showPrint)?"flex":"none";
+  $("exportCsvBtn").style.display=showExport?"":"none";
+  $("printReportBtn").style.display=showPrint?"":"none";
+  $("actTabOverlap").style.display=featureOn("overlap_report")?"":"none";
+ }else{
+  $("activityBtn").style.display="none";
+  $("adminExportRow").style.display="none";
+ }
+ $("uploadBtn").style.display=(isSuperAdmin()&&featureOn("data_upload"))?"inline-block":"none";
+}
+async function loadFeatureFlags(){
+ try{
+  const data=await getJ("/features");
+  featureFlags=data.features||{};
+ }catch(e){featureFlags={};}
+ applyFeatureFlags();
+}
+let meCache=null;
+async function afterLogin(){
+ const me=await(await fetch(`${API}/me`,{headers:H()})).json();
+ meCache=me;
+ myEmail=me.email;
+ $("who").textContent=`${me.email} (${me.role})`;
+ document.body.classList.add("authed");
+ $("bar").style.display="flex";$("authScreen").style.display="none";
+ myRole=me.role;
+ $("usersBtn").style.display=isStaff()?"inline-block":"none";
+ $("featuresBtn").style.display=isSuperAdmin()?"inline-block":"none";
+ if(isSuperAdmin()&&!$("uRole").querySelector('option[value="super_admin"]')){
+  const o=document.createElement("option");o.value="super_admin";o.textContent="Super Admin";$("uRole").appendChild(o);
+ }
+ await loadFeatureFlags();
+ startHeartbeat();
+ await loadLayerList();
+ if(me.must_setup_2fa) say("Two-factor authentication is required for your account - set it up under 🔒 Security.",true);
+}
+$("authForm").onsubmit=async(e)=>{
+ e.preventDefault();
+ const email=$("email").value.trim(),password=$("password").value;
+ const btn=$("authSubmit");
+ btn.disabled=true;btn.innerHTML='<span class="spinner" style="border-color:rgba(255,255,255,.4);border-top-color:#fff"></span>';
+ try{
+  if(authMode==="register"){
+   const r=await fetch(`${API}/register`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+   if(!r.ok) return authSay(await errText(r,"Could not create account: check the email and password"),true);
+   $("password").value="";
+   setAuthMode("login");
+   authSay("Account created. Check your email for a confirmation link to activate it.");
+   return;
+  }
+  const r=await fetch(`${API}/login`,{method:"POST",body:new URLSearchParams({username:email,password})});
+  if(!r.ok) return authSay(await errText(r,"Login failed: check email and password"),true);
+  const j=await r.json();
+  if(j.mfa_required){
+   _mfaToken=j.mfa_token;
+   $("mfaCode").value="";$("mfaMsg").textContent="";
+   showAuthPanel("mfa");
+   return;
+  }
+  token=j.access_token;
+  await afterLogin();
+ }catch(err){authSay("Cannot reach the API: "+err.message,true)}
+ finally{btn.disabled=false;btn.textContent=authMode==="login"?"Log in":"Create account";}
+};
+let _mfaToken=null;
+$("mfaForm").onsubmit=async(e)=>{
+ e.preventDefault();
+ const btn=$("mfaSubmit"),orig=btn.textContent;
+ btn.disabled=true;btn.innerHTML='<span class="spinner" style="border-color:rgba(255,255,255,.4);border-top-color:#fff"></span>';
+ try{
+  const r=await fetch(`${API}/login/2fa`,{method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({mfa_token:_mfaToken,code:$("mfaCode").value.trim()})});
+  if(!r.ok){$("mfaMsg").textContent=await errText(r,"Incorrect code");$("mfaMsg").className="";return;}
+  token=(await r.json()).access_token;
+  await afterLogin();
+ }catch(err){$("mfaMsg").textContent="Cannot reach the API: "+err.message;$("mfaMsg").className="";}
+ finally{btn.disabled=false;btn.textContent=orig;}
+};
+$("mfaBackLink").onclick=(e)=>{e.preventDefault();showAuthPanel("login")};
+function showAuthPanel(which){
+ $("authCard").style.display=which==="login"?"block":"none";
+ $("forgotCard").style.display=which==="forgot"?"block":"none";
+ $("resetCard").style.display=which==="reset"?"block":"none";
+ $("mfaCard").style.display=which==="mfa"?"block":"none";
+}
+$("forgotPasswordLink").onclick=(e)=>{e.preventDefault();$("forgotEmail").value=$("email").value.trim();authSay("");$("forgotMsg").textContent="";showAuthPanel("forgot")};
+$("backToLoginLink").onclick=(e)=>{e.preventDefault();showAuthPanel("login")};
+$("forgotForm").onsubmit=async(e)=>{
+ e.preventDefault();
+ const btn=$("forgotSubmit"),orig=btn.textContent;
+ btn.disabled=true;btn.innerHTML='<span class="spinner" style="border-color:rgba(255,255,255,.4);border-top-color:#fff"></span>';
+ try{
+  const r=await fetch(`${API}/forgot-password`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("forgotEmail").value.trim()})});
+  const m=$("forgotMsg");
+  if(!r.ok){m.textContent=await errText(r,"Could not send reset link");m.className="";return;}
+  m.textContent="If an account exists for that email, a reset link has been sent. Check your inbox.";m.className="ok";
+ }catch(err){const m=$("forgotMsg");m.textContent="Cannot reach the API: "+err.message;m.className="";}
+ finally{btn.disabled=false;btn.textContent=orig;}
+};
+$("resetForm").onsubmit=async(e)=>{
+ e.preventDefault();
+ const pw=$("resetPassword").value;
+ const btn=$("resetSubmit"),orig=btn.textContent;
+ btn.disabled=true;btn.innerHTML='<span class="spinner" style="border-color:rgba(255,255,255,.4);border-top-color:#fff"></span>';
+ try{
+  const r=await fetch(`${API}/reset-password`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:_resetToken,password:pw})});
+  const m=$("resetMsg");
+  if(!r.ok){m.textContent=await errText(r,"Could not reset password");m.className="";return;}
+  m.textContent="Password updated. You can log in now.";m.className="ok";
+  history.replaceState(null,"",location.pathname);
+  setTimeout(()=>showAuthPanel("login"),1500);
+ }catch(err){const m=$("resetMsg");m.textContent="Cannot reach the API: "+err.message;m.className="";}
+ finally{btn.disabled=false;btn.textContent=orig;}
+};
+let _resetToken=null;
+(()=>{
+ const p=new URLSearchParams(location.search);
+ const t=p.get("reset");
+ if(t){_resetToken=t;showAuthPanel("reset");}
+})();
+(async()=>{
+ try{
+  const r=await fetch(`${API}/features/public`);
+  if(!r.ok)return;
+  const d=await r.json();
+  if(d.self_registration===false) document.querySelector('[data-mode="register"]').style.display="none";
+  if(d.public_view) $("publicViewLink").style.display="block";
+ }catch(e){}
+})();
+$("logoutBtn").onclick=()=>{
+ logEvent("session.logout");
+ stopHeartbeat();
+ token=null;hideCharts();$("usersBtn").style.display="none";$("users").style.display="none";
+ $("activityBtn").style.display="none";$("activity").style.display="none";
+ $("featuresBtn").style.display="none";$("features").style.display="none";
+ $("security").style.display="none";
+ $("uploadBtn").style.display="none";$("upload").style.display="none";
+ $("bookmarksPanel").style.display="none";$("parcelDrawer").classList.remove("open");
+ myRole="";featureFlags={};meCache=null;
+ $("legend").classList.remove("mobileOpen");$("charts").classList.remove("mobileOpen");
+ $("mobileLayersBtn").classList.remove("active");$("mobileStatsBtn").classList.remove("active");
+ removeAllMapLayers();setSelSource(null);currentLayer=null;
+ selectedCounty=null;$("countyFilter").style.display="none";
+ document.body.classList.remove("authed");
+ $("bar").style.display="none";$("authScreen").style.display="flex";
+ setAuthMode("login");showAuthPanel("login");$("email").value="";$("password").value="";
+ authSay("");say("");
+};
+map.on("load",()=>{
+ // Liberia outline + county boundaries are always shown by default now (no header toggle).
+ fetch("/liberia-counties.geojson").then(r=>r.json()).then(gj=>{
+  map.addSource("adm-counties",{type:"geojson",data:gj});
+  map.addLayer({id:"adm-counties-fill",type:"fill",source:"adm-counties",layout:{visibility:"visible"},paint:{"fill-color":"#000","fill-opacity":0}});
+  map.addLayer({id:"adm-counties-line",type:"line",source:"adm-counties",layout:{visibility:"visible"},paint:{"line-color":"#6b7280","line-width":1,"line-dasharray":[2,1.4]}});
+  map.addLayer({id:"adm-counties-label",type:"symbol",source:"adm-counties",layout:{visibility:"visible","text-field":["get","name"],"text-size":11,"text-font":["Open Sans Regular"]},paint:{"text-color":"#374151","text-halo-color":"#fff","text-halo-width":1.4}});
+  map.on("mouseenter","adm-counties-fill",()=>map.getCanvas().style.cursor="pointer");
+  map.on("mouseleave","adm-counties-fill",()=>map.getCanvas().style.cursor="");
+ }).catch(()=>{});
+ fetch("/liberia-boundary.geojson").then(r=>r.json()).then(gj=>{
+  map.addSource("adm-boundary",{type:"geojson",data:gj});
+  map.addLayer({id:"adm-boundary-line",type:"line",source:"adm-boundary",layout:{visibility:"visible"},paint:{"line-color":"#111827","line-width":2.5}});
+ }).catch(()=>{});
+});
+
+let _usersCache=[];
+function updateBulkUserButtons(){
+ const boxes=[...document.querySelectorAll(".uSel")];
+ const checked=boxes.filter(b=>b.checked);
+ $("uSelCount").textContent=`${checked.length} selected`;
+ const checkedUsers=checked.map(b=>_usersCache.find(u=>String(u.id)===b.dataset.id)).filter(Boolean);
+ $("uBulkDelete").disabled=checked.length===0;
+ $("uBulkApprove").disabled=!checkedUsers.some(u=>!u.is_approved);
+ $("uSelectAll").checked=boxes.length>0&&checked.length===boxes.length;
+ $("uSelectAll").indeterminate=checked.length>0&&checked.length<boxes.length;
+}
+async function loadUsers(){
+ const box=$("uList");box.textContent="";
+ _usersCache=await getJ("/users");
+ for(const u of _usersCache){
+  const row=document.createElement("div");row.className="urow";
+  const sel=document.createElement("input");sel.type="checkbox";sel.className="uSel";sel.dataset.id=u.id;
+  sel.style.marginRight="8px";sel.onchange=updateBulkUserButtons;
+  row.appendChild(sel);
+  const t=document.createElement("span");
+  t.textContent=`${u.email} (${u.role}${u.county_scope?" - "+u.county_scope:""}${u.totp_enabled?" - 2FA":""})`+(u.is_approved?"":" - pending confirmation");
+  if(!u.is_approved) t.style.color="#b45309";
+  row.appendChild(t);
+  const btns=document.createElement("span");
+  if(!u.is_approved){
+   const a=document.createElement("button");a.textContent="Approve";a.className="approve";a.style.marginRight="4px";
+   a.onclick=async()=>{
+    const r=await fetch(`${API}/users/${u.id}/approve`,{method:"PUT",headers:H()});
+    if(!r.ok)return say(await errText(r,"Could not approve user"),true);
+    loadUsers();
+   };
+   btns.appendChild(a);
+  }
+  if(u.role!=="super_admin"||isSuperAdmin()){
+   const b=document.createElement("button");b.textContent="Delete";b.className="urow-del";
+   b.onclick=async()=>{
+    if(!confirm(`Delete ${u.email}?`))return;
+    const r=await fetch(`${API}/users/${u.id}`,{method:"DELETE",headers:H()});
+    if(!r.ok)return say(await errText(r,"Could not delete user"),true);
+    loadUsers();
+   };
+   btns.appendChild(b);
+  }
+  row.appendChild(btns);box.appendChild(row);
+ }
+ updateBulkUserButtons();
+}
+$("usersBtn").onclick=()=>{const m=$("users");const open=m.style.display!=="block";m.style.display=open?"block":"none";if(open)loadUsers().catch(e=>say("Could not load users: "+e.message,true))};
+async function loadFeatures(){
+ const box=$("featureList");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading…</div>';
+ const data=await getJ("/features");
+ featureFlags=data.features||{};
+ box.textContent="";
+ for(const key of Object.keys(data.labels)){
+  const row=document.createElement("label");row.className="featureRow";
+  const span=document.createElement("span");span.textContent=data.labels[key];
+  const input=document.createElement("input");input.type="checkbox";input.checked=featureFlags[key]!==false;
+  input.onchange=async()=>{
+   const next=input.checked;
+   input.disabled=true;
+   try{
+    const r=await fetch(`${API}/features/${encodeURIComponent(key)}?enabled=${next}`,{method:"PUT",headers:H()});
+    if(!r.ok){input.checked=!next;return say(await errText(r,"Could not update feature"),true);}
+    featureFlags[key]=next;
+    applyFeatureFlags();
+   }catch(e){input.checked=!next;say("Could not reach the API: "+e.message,true);}
+   finally{input.disabled=false;}
+  };
+  row.append(span,input);box.appendChild(row);
+ }
+}
+$("featuresBtn").onclick=()=>{const m=$("features");const open=m.style.display!=="block";m.style.display=open?"block":"none";if(open)loadFeatures().catch(e=>say("Could not load feature settings: "+e.message,true))};
+$("featuresClose").onclick=()=>{$("features").style.display="none"};
+async function loadImportHistory(){
+ const box=$("importHistoryList");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading…</div>';
+ try{
+  const rows=await getJ("/admin/import-history");
+  box.textContent="";
+  if(!rows.length){box.innerHTML='<div style="color:#888;padding:6px 0">No uploads yet</div>';return}
+  rows.forEach(r=>{
+   const div=document.createElement("div");div.style.cssText="padding:4px 0;border-bottom:1px solid #f1f4f8";
+   const when=r.created_at?new Date(r.created_at).toLocaleString():"";
+   div.innerHTML=`<b>${esc(r.detail||"")}</b><br><span style="color:#888">${esc(r.actor_email||"")} · ${esc(when)}</span>`;
+   box.appendChild(div);
+  });
+ }catch(e){box.innerHTML="";say("Could not load import history: "+e.message,true);}
+}
+$("uploadBtn").onclick=()=>{const m=$("upload");const open=m.style.display!=="block";m.style.display=open?"block":"none";if(open)loadImportHistory();};
+$("uploadClose").onclick=()=>{$("upload").style.display="none"};
+$("upSubmit").onclick=async()=>{
+ const layerName=$("upLayerName").value.trim(),mode=$("upMode").value,file=$("upFile").files[0];
+ if(!layerName)return say("Enter a layer name (schema.table)",true);
+ if(!file)return say("Choose a .zip file first",true);
+ const btn=$("upSubmit"),orig=btn.textContent;btn.disabled=true;btn.textContent="Uploading…";
+ $("upResult").textContent="";
+ try{
+  const fd=new FormData();fd.append("file",file);
+  const url=`${API}/admin/upload-shapefile?layer_name=${encodeURIComponent(layerName)}&mode=${encodeURIComponent(mode)}`;
+  const r=await fetch(url,{method:"POST",headers:H(),body:fd});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){$("upResult").innerHTML=`<span style="color:#c0392b">${esc(j.detail||"Upload failed")}</span>`;return}
+  $("upResult").innerHTML=`<span style="color:#16a34a">Loaded ${j.feature_count} feature(s) into ${esc(j.layer)}.</span>`;
+  $("upFile").value="";
+  loadImportHistory();
+  loadLayerList();
+ }catch(e){$("upResult").innerHTML=`<span style="color:#c0392b">${esc(e.message)}</span>`;}
+ finally{btn.disabled=false;btn.textContent=orig;}
+};
+async function loadSecurity(){
+ const me=await(await fetch(`${API}/me`,{headers:H()})).json();
+ meCache=me;
+ $("secSetup").style.display="none";$("secDisable").style.display="none";
+ if(me.totp_enabled){
+  $("secStatus").innerHTML='<span style="color:#16a34a">&#10003; Two-factor authentication is ON for your account</span>';
+  $("secDisable").style.display="block";
+ }else{
+  $("secStatus").textContent=me.must_setup_2fa
+   ?"Your administrator requires two-factor authentication for staff accounts - set it up below."
+   :"Two-factor authentication is currently off for your account.";
+  try{
+   const s=await(await fetch(`${API}/2fa/setup`,{method:"POST",headers:H()})).json();
+   $("secQr").src="data:image/png;base64,"+s.qr_png_base64;
+   $("secSecret").textContent=s.secret;
+   $("secSetup").style.display="block";
+  }catch(e){}
+ }
+}
+$("securityBtn").onclick=()=>{const m=$("security");const open=m.style.display!=="block";m.style.display=open?"block":"none";if(open)loadSecurity().catch(e=>say("Could not load security settings: "+e.message,true))};
+$("securityClose").onclick=()=>{$("security").style.display="none"};
+$("secEnableBtn").onclick=async()=>{
+ const r=await fetch(`${API}/2fa/enable`,{method:"POST",headers:{...H(),"Content-Type":"application/json"},body:JSON.stringify({code:$("secEnableCode").value.trim()})});
+ if(!r.ok)return say(await errText(r,"Incorrect code"),true);
+ say("Two-factor authentication turned on");setTimeout(()=>say(""),2500);
+ loadSecurity();
+};
+$("secDisableBtn").onclick=async()=>{
+ if(!confirm("Turn off two-factor authentication for your account?"))return;
+ const r=await fetch(`${API}/2fa/disable`,{method:"POST",headers:{...H(),"Content-Type":"application/json"},body:JSON.stringify({code:$("secDisableCode").value.trim()})});
+ if(!r.ok)return say(await errText(r,"Incorrect code"),true);
+ say("Two-factor authentication turned off");setTimeout(()=>say(""),2500);
+ loadSecurity();
+};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function loadActivity(){
+ const box=$("actList");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading…</div>';
+ const rows=await getJ("/activity?limit=150");
+ box.textContent="";
+ if(!rows.length){box.innerHTML='<div style="color:#888;text-align:center;padding:14px 0">No activity recorded yet</div>';return}
+ rows.forEach(r=>{
+  const div=document.createElement("div");div.className="actRow";
+  const when=r.created_at?new Date(r.created_at).toLocaleString():"";
+  div.innerHTML=`<span class="actAction">${esc(r.action)}</span><span class="actWhen">${esc(when)}</span>`+
+   `<span class="actDetail">${esc(r.actor_email||"—")}${r.ip_address?" · "+esc(r.ip_address):""}${r.detail?" · "+esc(r.detail):""}</span>`;
+  box.appendChild(div);
+ });
+}
+let resourceChart,dailyChart;
+function fmtMinutes(m){
+ if(m<60)return Math.round(m)+"m";
+ const h=Math.floor(m/60),mm=Math.round(m%60);
+ return h+"h"+(mm?" "+mm+"m":"");
+}
+async function loadAnalytics(){
+ $("anOnline").textContent="…";
+ const data=await getJ("/activity/analytics?days=30");
+ $("anOnline").textContent=data.online_now.length;
+ $("anUsers").textContent=data.unique_users;
+ $("anEvents").textContent=data.total_events.toLocaleString();
+ $("anTopResource").textContent=(data.resource_counts[0]&&data.resource_counts[0].action)||"—";
+
+ const top=data.resource_counts.slice(0,10);
+ resourceChart&&resourceChart.destroy();
+ resourceChart=new Chart($("analyticsResourceChart"),{type:"bar",
+  data:{labels:top.map(r=>r.action),datasets:[{label:"Events",data:top.map(r=>r.count),backgroundColor:COLORS[0]}]},
+  options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});
+
+ dailyChart&&dailyChart.destroy();
+ dailyChart=new Chart($("analyticsDailyChart"),{type:"line",
+  data:{labels:data.daily_counts.map(d=>d.date),datasets:[{label:"Events",data:data.daily_counts.map(d=>d.count),
+   borderColor:COLORS[1],backgroundColor:COLORS[1]+"33",fill:true,tension:.25}]},
+  options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+
+ const body=$("analyticsUserBody");body.innerHTML="";
+ if(!data.per_user.length){body.innerHTML='<tr><td colspan="6" style="text-align:center;color:#888;padding:10px 0">No visits recorded yet</td></tr>';return}
+ data.per_user.forEach(u=>{
+  const tr=document.createElement("tr");
+  const when=u.last_seen?new Date(u.last_seen).toLocaleString():"—";
+  tr.innerHTML=`<td>${u.online_now?'<span class="onlineDot"></span>':""}${esc(u.email)}</td>`+
+   `<td class="num">${u.sessions}</td><td class="num">${fmtMinutes(u.total_minutes)}</td>`+
+   `<td>${esc(when)}</td><td>${esc(u.top_resource||"—")}</td><td>${esc(u.ip_address||"—")}</td>`;
+  body.appendChild(tr);
+ });
+}
+function showActTab(tab){
+ $("actTabOverview").classList.toggle("on",tab==="overview");
+ $("actTabLog").classList.toggle("on",tab==="log");
+ $("actTabOverlap").classList.toggle("on",tab==="overlap");
+ $("actOverview").style.display=tab==="overview"?"block":"none";
+ $("actLog").style.display=tab==="log"?"block":"none";
+ $("actOverlap").style.display=tab==="overlap"?"block":"none";
+}
+$("actTabOverview").onclick=()=>{showActTab("overview");loadAnalytics().catch(e=>say("Could not load analytics: "+e.message,true));};
+$("actTabLog").onclick=()=>{showActTab("log");loadActivity().catch(e=>say("Could not load activity: "+e.message,true));};
+$("actTabOverlap").onclick=()=>{showActTab("overlap")};
+async function runOverlapCheck(){
+ const box=$("overlapResult");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Checking every layer for overlaps…</div>';
+ try{
+  const data=await getJ("/stats/overlaps?limit=200");
+  if(!data.pairs.length){box.innerHTML='<div style="color:#16a34a;padding:8px 0">No overlaps found across '+data.checked_layers.length+' layers.</div>';return}
+  box.innerHTML="";
+  const tbl=document.createElement("table");tbl.style.cssText="width:100%;border-collapse:collapse;font-size:11.5px";
+  tbl.innerHTML="<thead><tr><th style='text-align:left'>Layer A / ID</th><th style='text-align:left'>Layer B / ID</th><th style='text-align:right'>Overlap (ac)</th></tr></thead>";
+  const tb=document.createElement("tbody");
+  data.pairs.forEach(p=>{
+   const tr=document.createElement("tr");
+   tr.innerHTML=`<td style="padding:4px 2px;border-bottom:1px solid #eee">${esc(prettyLayerName(p.layer_a,p.layer_a))} #${esc(p.id_a)}</td>`+
+    `<td style="padding:4px 2px;border-bottom:1px solid #eee">${esc(prettyLayerName(p.layer_b,p.layer_b))} #${esc(p.id_b)}</td>`+
+    `<td style="padding:4px 2px;border-bottom:1px solid #eee;text-align:right">${p.overlap_acres}</td>`;
+   tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);box.appendChild(tbl);
+  const note=document.createElement("div");note.style.cssText="font-size:10.5px;color:#94a3b8;margin-top:6px";
+  note.textContent=`${data.pairs.length} overlapping pair(s) found across ${data.checked_layers.length} layers.`;
+  box.appendChild(note);
+ }catch(e){box.innerHTML="";say("Could not run overlap check: "+e.message,true);}
+}
+$("overlapRun").onclick=()=>runOverlapCheck().catch(()=>{});
+$("activityBtn").onclick=()=>{
+ const m=$("activity");const open=m.style.display!=="block";m.style.display=open?"block":"none";
+ if(open){showActTab("overview");loadAnalytics().catch(e=>say("Could not load analytics: "+e.message,true));}
+};
+$("actClose").onclick=()=>{$("activity").style.display="none"};
+
+// ---- compare counties ----
+let _selectedCounties=new Set();
+async function getAllCountyNames(){
+ const lists=await Promise.all(_shownLayers.map(l=>
+  getJ(`/stats/by?layer=${encodeURIComponent(l.id)}&group=county&metric=count&limit=50`).catch(()=>[])
+ ));
+ const names=new Set();
+ for(const rows of lists) for(const r of rows) if(r.label&&r.label!=="(blank)") names.add(r.label.trim());
+ return [...names].sort();
+}
+async function openCompare(){
+ $("compare").style.display="block";
+ $("compareResults").innerHTML="";
+ const box=$("compareCounties");
+ box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading counties…</div>';
+ try{
+  const names=await getAllCountyNames();
+  box.innerHTML="";
+  if(!names.length){box.innerHTML='<div style="color:#888">No county data found in the mapped layers</div>';return}
+  names.forEach(n=>{
+   const chip=document.createElement("div");chip.className="countyChip"+(_selectedCounties.has(n)?" on":"");
+   chip.textContent=n;
+   chip.onclick=()=>{
+    if(_selectedCounties.has(n))_selectedCounties.delete(n);
+    else{ if(_selectedCounties.size>=4){say("Pick at most 4 counties to compare",true);return;} _selectedCounties.add(n); }
+    chip.classList.toggle("on");
+   };
+   box.appendChild(chip);
+  });
+ }catch(e){box.innerHTML='<div style="color:#c0392b">Could not load counties: '+e.message+'</div>'}
+}
+let compareChart;
+$("compareRun").onclick=async()=>{
+ const counties=[..._selectedCounties];
+ if(counties.length<2)return say("Pick at least 2 counties to compare",true);
+ const btn=$("compareRun"),orig=btn.textContent;btn.disabled=true;btn.textContent="Comparing…";
+ $("compareResults").innerHTML='<div class="loadingRow"><span class="spinner"></span>Crunching numbers…</div>';
+ logEvent("tool.compare_counties",counties.join(", "));
+ try{
+  const matrix=await Promise.all(_shownLayers.map(l=>
+   Promise.all(counties.map(c=>getJ(`/stats/summary?layer=${encodeURIComponent(l.id)}&county=${encodeURIComponent(c)}`).catch(()=>({parcels:0,acres:0}))))
+  ));
+  const totalsAcres=counties.map(()=>0),totalsParcels=counties.map(()=>0);
+  let rowsHtml="";
+  _shownLayers.forEach((l,li)=>{
+   rowsHtml+=`<tr><td>${prettyLayerName(l.id,l.name)}</td>`;
+   counties.forEach((c,ci)=>{
+    const r=matrix[li][ci];
+    totalsAcres[ci]+=r.acres||0;totalsParcels[ci]+=r.parcels||0;
+    rowsHtml+=`<td>${Math.round(r.acres||0).toLocaleString()} ac</td>`;
+   });
+   rowsHtml+="</tr>";
+  });
+  let totalRow=`<tr class="cmpTotal"><td>Total acres</td>`+counties.map((_,ci)=>`<td>${Math.round(totalsAcres[ci]).toLocaleString()}</td>`).join("")+"</tr>";
+  let parcelRow=`<tr class="cmpTotal"><td>Total parcels</td>`+counties.map((_,ci)=>`<td>${totalsParcels[ci].toLocaleString()}</td>`).join("")+"</tr>";
+  $("compareResults").innerHTML=
+   `<table class="cmpTable"><thead><tr><th>Layer</th>${counties.map(c=>`<th>${c}</th>`).join("")}</tr></thead>`+
+   `<tbody>${rowsHtml}${totalRow}${parcelRow}</tbody></table>`+
+   `<div style="height:200px;margin-top:14px"><canvas id="compareChart"></canvas></div>`;
+  compareChart&&compareChart.destroy();
+  compareChart=new Chart($("compareChart"),{type:"bar",
+   data:{labels:counties,datasets:[{label:"Total acres",data:totalsAcres,backgroundColor:COLORS[0]}]},
+   options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+ }catch(e){$("compareResults").innerHTML='<div style="color:#c0392b">Could not compare counties: '+e.message+'</div>'}
+ finally{btn.disabled=false;btn.textContent=orig;}
+};
+$("compareBtn").onclick=()=>openCompare().catch(e=>say("Could not load counties: "+e.message,true));
+$("compareClose").onclick=()=>{$("compare").style.display="none"};
+
+// ---- mobile layout: Layers/Stats panels are full-screen overlays toggled one at a time ----
+$("mobileLayersBtn").onclick=()=>{
+ const open=$("legend").classList.toggle("mobileOpen");
+ $("mobileLayersBtn").classList.toggle("active",open);
+ if(open){$("charts").classList.remove("mobileOpen");$("mobileStatsBtn").classList.remove("active");}
+};
+$("mobileStatsBtn").onclick=()=>{
+ const open=$("charts").classList.toggle("mobileOpen");
+ $("mobileStatsBtn").classList.toggle("active",open);
+ if(open){$("legend").classList.remove("mobileOpen");$("mobileLayersBtn").classList.remove("active");}
+};
+$("uClose").onclick=()=>{$("users").style.display="none"};
+$("uSelectAll").onchange=()=>{
+ const checked=$("uSelectAll").checked;
+ document.querySelectorAll(".uSel").forEach(b=>b.checked=checked);
+ updateBulkUserButtons();
+};
+$("uBulkApprove").onclick=async()=>{
+ const ids=[...document.querySelectorAll(".uSel")].filter(b=>b.checked).map(b=>b.dataset.id);
+ const targets=ids.map(id=>_usersCache.find(u=>String(u.id)===id)).filter(u=>u&&!u.is_approved);
+ if(!targets.length)return;
+ const btn=$("uBulkApprove");btn.disabled=true;const orig=btn.textContent;btn.textContent="Approving…";
+ try{
+  const results=await Promise.allSettled(targets.map(u=>fetch(`${API}/users/${u.id}/approve`,{method:"PUT",headers:H()}).then(r=>{if(!r.ok)throw new Error(u.email)})));
+  const failed=results.filter(r=>r.status==="rejected").length;
+  if(failed)say(`Approved ${targets.length-failed} of ${targets.length} (${failed} failed)`,true);
+  else{say(`Approved ${targets.length} user(s)`);setTimeout(()=>say(""),2500);}
+ }finally{btn.textContent=orig;await loadUsers();}
+};
+$("uBulkDelete").onclick=async()=>{
+ const ids=[...document.querySelectorAll(".uSel")].filter(b=>b.checked).map(b=>b.dataset.id);
+ const targets=ids.map(id=>_usersCache.find(u=>String(u.id)===id)).filter(Boolean);
+ if(!targets.length)return;
+ if(!confirm(`Delete ${targets.length} user(s)?\n\n${targets.map(u=>u.email).join("\n")}`))return;
+ const btn=$("uBulkDelete");btn.disabled=true;const orig=btn.textContent;btn.textContent="Deleting…";
+ try{
+  const results=await Promise.allSettled(targets.map(u=>fetch(`${API}/users/${u.id}`,{method:"DELETE",headers:H()}).then(r=>{if(!r.ok)throw new Error(u.email)})));
+  const failed=results.filter(r=>r.status==="rejected").length;
+  if(failed)say(`Deleted ${targets.length-failed} of ${targets.length} (${failed} failed)`,true);
+  else{say(`Deleted ${targets.length} user(s)`);setTimeout(()=>say(""),2500);}
+ }finally{btn.textContent=orig;await loadUsers();}
+};
+$("uRole").onchange=()=>{$("uCounty").style.display=$("uRole").value==="admin"?"block":"none"};
+$("uAdd").onclick=async()=>{
+ const r=await fetch(`${API}/users`,{method:"POST",headers:{...H(),"Content-Type":"application/json"},body:JSON.stringify({email:$("uEmail").value.trim(),password:$("uPass").value,role:$("uRole").value,county_scope:$("uCounty").value.trim()||null})});
+ if(!r.ok)return say("Could not add user: "+await errText(r,"check the email address"),true);
+ $("uEmail").value="";$("uPass").value="";$("uCounty").value="";loadUsers();say("User added");setTimeout(()=>say(""),2500);
+};
+</script>
+</body></html>
