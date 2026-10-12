@@ -1,0 +1,44 @@
+server {
+    listen 10000;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+    client_max_body_size 200M;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        set $api_up http://127.0.0.1:8000;
+        rewrite ^/api/(.*)$ /$1 break;
+        proxy_pass $api_up;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    }
+
+    location = /_auth {
+        internal;
+        proxy_pass http://127.0.0.1:8000/verify;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header Host $host;
+    }
+
+    location /tiles/ {
+        auth_request /_auth;
+        rewrite ^/tiles/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:7800;
+        proxy_set_header Host $host;
+    }
+
+    location /features/ {
+        auth_request /_auth;
+        rewrite ^/features/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:9000;
+        proxy_set_header Host $host;
+    }
+}

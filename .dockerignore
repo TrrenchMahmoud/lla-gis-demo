@@ -1,0 +1,13 @@
+﻿.env
+.env.*
+!.env.example
+*.bak
+.git
+.git/**
+backups/
+backup/
+backend-sync-update/
+mobile-field-app/
+node_modules/
+**/__pycache__/
+**/*.pyc

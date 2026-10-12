@@ -1,0 +1,29 @@
+﻿# Build a single-container demo from the existing application and map-service images.
+FROM pramsey/pg_tileserv:latest AS tileserv
+FROM pramsey/pg_featureserv:latest AS featureserv
+
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx supervisor gettext-base gdal-bin \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=tileserv /app/pg_tileserv /usr/local/bin/pg_tileserv
+COPY --from=featureserv /pg_featureserv /usr/local/bin/pg_featureserv
+
+COPY backend/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+COPY backend/app /app/app
+COPY frontend /usr/share/nginx/html
+COPY nginx/render-nginx.conf.template /etc/nginx/render-nginx.conf.template
+COPY nginx/supervisord.conf /etc/supervisor/conf.d/render.conf
+COPY nginx/render-entrypoint.sh /usr/local/bin/render-entrypoint.sh
+
+RUN chmod +x /usr/local/bin/render-entrypoint.sh \
+    && rm -f /etc/nginx/sites-enabled/default
+
+CMD ["/usr/local/bin/render-entrypoint.sh"]
