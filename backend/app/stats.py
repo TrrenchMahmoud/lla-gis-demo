@@ -38,7 +38,7 @@ def split_layer(layer: str) -> tuple[str, str]:
 
 def table_exists(db: Session, schema: str, table: str) -> bool:
     row = db.execute(text(
-        "SELECT 1 FROM geometry_columns WHERE f_table_schema = :s AND f_table_name = :t"
+        "SELECT 1 FROM extensions.geometry_columns WHERE f_table_schema = :s AND f_table_name = :t"
     ), {"s": schema, "t": table}).first()
     return bool(row)
 
@@ -48,7 +48,7 @@ def geom_col(db: Session, schema: str, table: str) -> str:
     key = f"{schema}.{table}"
     if key not in _GEOM_COL_CACHE:
         row = db.execute(text(
-            "SELECT f_geometry_column FROM geometry_columns "
+            "SELECT f_geometry_column FROM extensions.geometry_columns "
             "WHERE f_table_schema = :s AND f_table_name = :t"
         ), {"s": schema, "t": table}).first()
         col = row[0] if row and NAME_RE.match(row[0] or "") else "wkb_geometry"
@@ -411,7 +411,7 @@ def known_layers(db: Session) -> list[tuple[str, str]]:
     """Every spatial table in the public schema - the dynamic layer list, discovered the same
     way pg_tileserv discovers it, rather than a hardcoded list that would drift out of date."""
     rows = db.execute(text(
-        "SELECT f_table_schema, f_table_name FROM geometry_columns WHERE f_table_schema = 'public' "
+        "SELECT f_table_schema, f_table_name FROM extensions.geometry_columns WHERE f_table_schema = 'public' "
         "ORDER BY f_table_name"
     )).all()
     return [(r[0], r[1]) for r in rows if NAME_RE.match(r[1])]

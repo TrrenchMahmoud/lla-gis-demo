@@ -1,4 +1,4 @@
-﻿# Environment files and secrets
+# Environment files and secrets
 .env
 .env.*
 !.env.example
@@ -44,9 +44,6 @@ backups/
 # Exclude components not needed for the initial web deployment
 /mobile-field-app/
 /backend-sync-update/
-
-# Local backup copies
-*.bak
 
 # Local backup copies
 *.bak
