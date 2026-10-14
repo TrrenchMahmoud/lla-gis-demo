@@ -236,7 +236,7 @@ body.dark .natNote,body.dark .note{color:#93a3ba}
 #darkModeBtn{position:fixed;top:10px;right:10px;z-index:50;font-size:16px;padding:5px 9px;border-radius:50%}
 </style></head><body>
 <div id="loadBar"></div>
-<button id="darkModeBtn" title="Toggle dark mode" type="button">ðŸŒ™</button>
+<button id="darkModeBtn" title="Toggle dark mode" type="button"></button>
 <div id="bar">
  <div id="brand"><img src="/assets/lla-logo.jpg" alt="LLA logo"><div id="brandText"><b>LLA Land Information Dashboard</b><span>LIBERIA LAND AUTHORITY</span></div></div>
  <div class="right">
@@ -248,24 +248,24 @@ body.dark .natNote,body.dark .note{color:#93a3ba}
   <option value="dark">Dark</option>
   <option value="terrain">Terrain</option>
  </select>
- <div id="userBox"><span id="who"></span><button id="activityBtn" style="display:none">ðŸ“Š Analytics</button><button id="usersBtn" style="display:none">Users</button><button id="uploadBtn" style="display:none">â¬† Upload data</button><button id="featuresBtn" style="display:none">âš™ Features</button><button id="securityBtn">ðŸ”’ Security</button><button id="logoutBtn">Log out</button></div>
+ <div id="userBox"><span id="who"></span><button id="activityBtn" style="display:none"> Analytics</button><button id="usersBtn" style="display:none">Users</button><button id="uploadBtn" style="display:none">â¬† Upload data</button><button id="featuresBtn" style="display:none">âš™ Features</button><button id="securityBtn"> Security</button><button id="logoutBtn">Log out</button></div>
  </div>
 </div>
 <div id="status"></div><div id="map"></div>
-<div id="mobileToggles"><button id="mobileLayersBtn">ðŸ—‚ Layers</button><button id="mobileStatsBtn">ðŸ“Š Stats</button></div>
+<div id="mobileToggles"><button id="mobileLayersBtn"> Layers</button><button id="mobileStatsBtn"> Stats</button></div>
 <div id="locSearchBox">
  <div class="locRow">
-  <input id="locSearchInput" type="text" placeholder="Search a location in Liberiaâ€¦" autocomplete="off">
-  <button id="locSearchBtn">ðŸ”</button>
+  <input id="locSearchInput" type="text" placeholder="Search a location in Liberia..." autocomplete="off">
+  <button id="locSearchBtn"></button>
  </div>
  <div id="locSearchResults"></div>
 </div>
 <div id="mapTools">
- <div id="measureBtn" class="mapToolBtn">ðŸ“ Measure</div>
- <div id="occupancyBtn" class="mapToolBtn">ðŸ“ Check location</div>
- <div id="locateBtn" class="mapToolBtn">ðŸ›° My location</div>
+ <div id="measureBtn" class="mapToolBtn"> Measure</div>
+ <div id="occupancyBtn" class="mapToolBtn"> Check location</div>
+ <div id="locateBtn" class="mapToolBtn"> My location</div>
  <div id="bookmarksBtn" class="mapToolBtn">â­ Views</div>
- <div id="exportMapBtn" class="mapToolBtn">ðŸ–¼ Export map</div>
+ <div id="exportMapBtn" class="mapToolBtn"> Export map</div>
 </div>
 <div id="bookmarksPanel">
  <div style="display:flex;justify-content:space-between;align-items:center">
@@ -273,7 +273,7 @@ body.dark .natNote,body.dark .note{color:#93a3ba}
   <button id="bookmarksCloseBtn" style="background:none;border:0;color:#888;font-size:14px;cursor:pointer;padding:0 2px">âœ•</button>
  </div>
  <div id="bookmarksList" style="margin:8px 0"></div>
- <input id="bookmarkName" placeholder="Name this viewâ€¦">
+ <input id="bookmarkName" placeholder="Name this view...">
  <button id="bookmarkSaveBtn" style="width:100%;margin-top:6px">Save current view</button>
  <div style="font-size:10.5px;color:#94a3b8;margin-top:6px">Saved in this browser only.</div>
 </div>
@@ -306,7 +306,7 @@ body.dark .natNote,body.dark .note{color:#93a3ba}
    <div class="statTile"><b id="statLargest">-</b><span>largest layer</span></div>
    <div class="statTile"><b id="statCounties">-</b><span>counties covered</span></div>
   </div>
-  <h4 class="natSubHead">Surveys per year â€” by layer</h4>
+  <h4 class="natSubHead">Surveys per year - by layer</h4>
   <div id="natYearWrap" style="height:210px;display:none"><canvas id="natYearChart"></canvas></div>
   <button id="compareBtn" style="width:100%;margin-top:12px;background:var(--navy2)">âš– Compare counties</button>
   <div class="natNote">Liberia's total land area â‰ˆ 96,320 kmÂ² (23.8M acres) across 15 counties. Pie slices show each layer's share of the mapped total.</div>
@@ -317,12 +317,12 @@ body.dark .natNote,body.dark .note{color:#93a3ba}
   <span>Filtered to <b id="countyFilterName"></b></span><a id="clearCountyFilter">Clear</a>
  </div>
  <div class="cards">
-  <div class="card kpi-parcels"><span class="kpiIcon">ðŸ“</span><div><b id="cParcels">-</b><span id="cParcelsLbl">parcels</span></div></div>
-  <div class="card kpi-acres"><span class="kpiIcon">ðŸŒ</span><div><b id="cAcres">-</b><span>acres</span></div></div>
+  <div class="card kpi-parcels"><span class="kpiIcon"></span><div><b id="cParcels">-</b><span id="cParcelsLbl">parcels</span></div></div>
+  <div class="card kpi-acres"><span class="kpiIcon"></span><div><b id="cAcres">-</b><span>acres</span></div></div>
  </div>
  <div id="adminExportRow" style="display:none;gap:8px;margin:8px 0">
   <button id="exportCsvBtn" style="flex:1;background:var(--navy2)">â¬‡ Export CSV</button>
-  <button id="printReportBtn" style="flex:1;background:var(--navy2)">ðŸ–¨ Print report</button>
+  <button id="printReportBtn" style="flex:1;background:var(--navy2)"> Print report</button>
  </div>
  <h4 style="display:flex;justify-content:space-between;align-items:center">Breakdown <a id="clearSel">Clear selection</a></h4>
  <select id="grp"></select>
@@ -331,7 +331,7 @@ body.dark .natNote,body.dark .note{color:#93a3ba}
  <div style="font-size:11px;color:#888;margin-top:4px">Click a bar to zoom the map to that group</div>
  <h4 style="display:flex;justify-content:space-between;align-items:center">Top features by area <a id="clearParcelFilter" style="display:none">Clear filter</a></h4>
  <div id="parcelFilterBar" style="display:flex;gap:6px;margin-bottom:6px">
-  <input id="parcelSearch" type="text" placeholder="Search name or IDâ€¦" style="flex:1;min-width:0;padding:5px 7px;border:1px solid #d8dee8;border-radius:6px;font-size:12px">
+  <input id="parcelSearch" type="text" placeholder="Search name or ID..." style="flex:1;min-width:0;padding:5px 7px;border:1px solid #d8dee8;border-radius:6px;font-size:12px">
   <input id="parcelMinAcres" type="number" placeholder="Min ac" style="width:64px;padding:5px 7px;border:1px solid #d8dee8;border-radius:6px;font-size:12px">
   <input id="parcelMaxAcres" type="number" placeholder="Max ac" style="width:64px;padding:5px 7px;border:1px solid #d8dee8;border-radius:6px;font-size:12px">
  </div>
@@ -425,7 +425,7 @@ body.dark .natNote,body.dark .note{color:#93a3ba}
 </div>
 <div id="compare">
  <div style="display:flex;justify-content:space-between"><b>Compare counties</b><button id="compareClose">Close</button></div>
- <div style="font-size:11px;color:#888;margin:6px 0">Pick 2â€“4 counties to compare parcels and acreage across all mapped layers.</div>
+ <div style="font-size:11px;color:#888;margin:6px 0">Pick 2-4 counties to compare parcels and acreage across all mapped layers.</div>
  <div id="compareCounties" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
  <button id="compareRun" style="width:100%">Compare</button>
  <div id="compareResults" style="margin-top:12px"></div>
@@ -518,11 +518,11 @@ const isSuperAdmin=()=>myRole==="super_admin";
 const $=id=>document.getElementById(id);
 (()=>{
  try{
-  if(localStorage.getItem("darkMode")==="1"){document.body.classList.add("dark");$("darkModeBtn").textContent="â˜€";}
+  if(localStorage.getItem("darkMode")==="1"){document.body.classList.add("dark");$("darkModeBtn").textContent="Light mode";}
  }catch(e){}
  $("darkModeBtn").onclick=()=>{
   const on=document.body.classList.toggle("dark");
-  $("darkModeBtn").textContent=on?"â˜€":"ðŸŒ™";
+  $("darkModeBtn").textContent=on?"Light mode":"";
   try{localStorage.setItem("darkMode",on?"1":"0");}catch(e){}
  };
 })();
@@ -626,7 +626,7 @@ async function runLocSearch(q){
  if(_locAbort)_locAbort.abort();
  _locAbort=new AbortController();
  $("locSearchResults").style.display="block";
- $("locSearchResults").innerHTML='<div class="loadingRow"><span class="spinner"></span>Searchingâ€¦</div>';
+ $("locSearchResults").innerHTML='<div class="loadingRow"><span class="spinner"></span>Searching...</div>';
  try{
   const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=lr&q=${encodeURIComponent(q)}`;
   const r=await fetch(url,{signal:_locAbort.signal,headers:{Accept:"application/json"}});
@@ -669,17 +669,17 @@ $("occClose").onclick=()=>{$("occupancy").style.display="none"};
 let _locateMarker=null;
 $("locateBtn").onclick=()=>{
  if(!navigator.geolocation)return say("Geolocation isn't available in this browser",true);
- $("locateBtn").textContent="ðŸ›° Locatingâ€¦";
+ $("locateBtn").textContent=" Locating...";
  navigator.geolocation.getCurrentPosition(
   (pos)=>{
-   $("locateBtn").textContent="ðŸ›° My location";
+   $("locateBtn").textContent=" My location";
    const {latitude,longitude}=pos.coords;
    if(_locateMarker)_locateMarker.remove();
    _locateMarker=new maplibregl.Marker({color:"#1d4e89"}).setLngLat([longitude,latitude]).addTo(map);
    map.flyTo({center:[longitude,latitude],zoom:15});
    logEvent("tool.my_location");
   },
-  (err)=>{$("locateBtn").textContent="ðŸ›° My location";say("Could not get your location: "+err.message,true)},
+  (err)=>{$("locateBtn").textContent=" My location";say("Could not get your location: "+err.message,true)},
   {enableHighAccuracy:true,timeout:10000}
  );
 };
@@ -738,7 +738,7 @@ function metersPerPixel(map){
  return 156543.03392*Math.cos(c.lat*Math.PI/180)/Math.pow(2,map.getZoom());
 }
 $("exportMapBtn").onclick=async()=>{
- const btn=$("exportMapBtn"),orig=btn.textContent;btn.textContent="ðŸ–¼ Renderingâ€¦";
+ const btn=$("exportMapBtn"),orig=btn.textContent;btn.textContent=" Rendering...";
  try{
   await new Promise(r=>map.once("idle",r));
   const src=map.getCanvas();
@@ -748,7 +748,7 @@ $("exportMapBtn").onclick=async()=>{
   // title bar
   ctx.fillStyle="rgba(11,37,69,.88)";ctx.fillRect(0,0,out.width,42);
   ctx.fillStyle="#fff";ctx.font="bold 16px system-ui,sans-serif";
-  ctx.fillText("LLA Land Information Dashboard"+(currentLayer?" â€” "+prettyLayerName(currentLayer,currentLayer):""),14,27);
+  ctx.fillText("LLA Land Information Dashboard"+(currentLayer?" - "+prettyLayerName(currentLayer,currentLayer):""),14,27);
   // legend (active layers)
   ctx.fillStyle="rgba(255,255,255,.92)";
   const boxH=((_shownLayers||[]).length*18)+34;
@@ -871,8 +871,8 @@ $("occRun").onclick=async()=>{
  if(points.length===0)return box.innerHTML='<div style="color:#c0392b">Paste at least one coordinate</div>';
  if(points.length===2)return box.innerHTML='<div style="color:#c0392b">Two points isn\'t a shape - use one point, or three or more to outline an area</div>';
  if(!_shownLayers.length)return box.innerHTML='<div style="color:#c0392b">No layers available to check against</div>';
- const btn=$("occRun"),orig=btn.textContent;btn.disabled=true;btn.textContent="Checkingâ€¦";
- box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Checking '+_shownLayers.length+' layer(s)â€¦</div>';
+ const btn=$("occRun"),orig=btn.textContent;btn.disabled=true;btn.textContent="Checking...";
+ box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Checking '+_shownLayers.length+' layer(s)...</div>';
  logEvent("tool.check_occupancy",`${points.length} point(s)`);
  try{
   const results=await Promise.all(_shownLayers.map(l=>
@@ -1100,7 +1100,7 @@ async function drawNationalYearChart(shown){
  }catch(e){$("natYearWrap").style.display="none"}
 }
 async function loadLayerList(){
- $("lList").innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading layersâ€¦</div>';
+ $("lList").innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading layers...</div>';
  _loadStart();
  try{
   const [ri,ra]=await Promise.all([fetch(`${TILES}/index.json`,{headers:H()}),fetch(`${API}/layers/access`,{headers:H()})]);
@@ -1189,23 +1189,23 @@ function buildFeatureMenu(layerId,f){
  const head=document.createElement("div");head.className="ctxHead";head.textContent=prettyLayerName(layerId);wrap.appendChild(head);
 
  const actions=document.createElement("div");actions.className="ctxActions";
- const zoomBtn=document.createElement("button");zoomBtn.type="button";zoomBtn.textContent="ðŸ” Zoom to feature";
+ const zoomBtn=document.createElement("button");zoomBtn.type="button";zoomBtn.textContent=" Zoom to feature";
  zoomBtn.onclick=()=>{try{const b=bboxFromGeometry(f.geometry);map.fitBounds([[b.xmin,b.ymin],[b.xmax,b.ymax]],{padding:60,maxZoom:17})}catch(err){}};
  actions.appendChild(zoomBtn);
 
  const idKey=Object.keys(f.properties).find(k=>["ogc_fid","gid","id","fid"].includes(k.toLowerCase()));
  if(idKey){
-  const copyIdBtn=document.createElement("button");copyIdBtn.type="button";copyIdBtn.textContent="ðŸ“‹ Copy Feature ID";
+  const copyIdBtn=document.createElement("button");copyIdBtn.type="button";copyIdBtn.textContent=" Copy Feature ID";
   copyIdBtn.onclick=()=>copyToClipboard(f.properties[idKey],"feature ID");
   actions.appendChild(copyIdBtn);
  }
- const detailsBtn=document.createElement("button");detailsBtn.type="button";detailsBtn.textContent="ðŸ—‚ Full details";
+ const detailsBtn=document.createElement("button");detailsBtn.type="button";detailsBtn.textContent=" Full details";
  detailsBtn.onclick=()=>openParcelDrawer(layerId,f);
  actions.appendChild(detailsBtn);
  if(isStaff()){
   const nameKey=Object.keys(f.properties).find(k=>NAME_COLS.has(k.toLowerCase()));
   if(nameKey&&f.properties[nameKey]){
-   const copyNameBtn=document.createElement("button");copyNameBtn.type="button";copyNameBtn.textContent="ðŸ“‹ Copy Name";
+   const copyNameBtn=document.createElement("button");copyNameBtn.type="button";copyNameBtn.textContent=" Copy Name";
    copyNameBtn.onclick=()=>copyToClipboard(f.properties[nameKey],"name");
    actions.appendChild(copyNameBtn);
   }
@@ -1226,11 +1226,11 @@ function openParcelDrawer(layerId,f){
  const idKey=Object.keys(f.properties).find(k=>["ogc_fid","gid","id","fid"].includes(k.toLowerCase()));
  $("pdSub").textContent=idKey?`Feature #${f.properties[idKey]}`:"";
  const actions=$("pdActions");actions.innerHTML="";
- const zoomBtn=document.createElement("button");zoomBtn.textContent="ðŸ” Zoom";
+ const zoomBtn=document.createElement("button");zoomBtn.textContent=" Zoom";
  zoomBtn.onclick=()=>{try{const b=bboxFromGeometry(f.geometry);map.fitBounds([[b.xmin,b.ymin],[b.xmax,b.ymax]],{padding:60,maxZoom:17})}catch(err){}};
  actions.appendChild(zoomBtn);
  if(featureOn("parcel_certificate")){
-  const certBtn=document.createElement("button");certBtn.textContent="ðŸ–¨ Print certificate";
+  const certBtn=document.createElement("button");certBtn.textContent=" Print certificate";
   certBtn.onclick=()=>printParcelCertificate(layerId,f);
   actions.appendChild(certBtn);
  }
@@ -1251,13 +1251,13 @@ function printParcelCertificate(layerId,f){
  const nameKey=Object.keys(f.properties).find(k=>NAME_COLS.has(k.toLowerCase()));
  const areaKey=Object.keys(f.properties).find(k=>k.toLowerCase().includes("area"));
  const countyKey=Object.keys(f.properties).find(k=>k.toLowerCase()==="county");
- const featureId=idKey?f.properties[idKey]:"â€”";
+ const featureId=idKey?f.properties[idKey]:"-";
  const name=(isStaff()&&nameKey)?f.properties[nameKey]:null;
  const area=areaKey?Number(f.properties[areaKey]):null;
  const county=countyKey?f.properties[countyKey]:null;
  const refNo=`LLA-${layerId.split(".").pop().slice(0,4).toUpperCase()}-${featureId}`;
  const w=window.open("","_blank");
- w.document.write(`<!DOCTYPE html><html><head><title>Land Information Certificate â€” ${esc(refNo)}</title>
+ w.document.write(`<!DOCTYPE html><html><head><title>Land Information Certificate - ${esc(refNo)}</title>
  <style>
   body{font-family:"Segoe UI",system-ui,sans-serif;color:#111827;margin:0;padding:40px}
   .cert{max-width:640px;margin:0 auto;border:3px solid #0b2545;border-radius:10px;padding:36px}
@@ -1286,7 +1286,7 @@ function printParcelCertificate(layerId,f){
    ${area!=null&&!isNaN(area)?`<tr><td class="label">Area</td><td class="val">${Math.round(area).toLocaleString()} acres</td></tr>`:""}
    <tr><td class="label">Issued</td><td class="val">${new Date().toLocaleDateString()}</td></tr>
   </table>
-  <div class="refNo">Reference: ${esc(refNo)} &nbsp;|&nbsp; Issued by ${esc(myEmail||"â€”")}</div>
+  <div class="refNo">Reference: ${esc(refNo)} &nbsp;|&nbsp; Issued by ${esc(myEmail||"-")}</div>
   <div class="sig">
    <div>Authorized signature</div>
    <div>Official stamp</div>
@@ -1341,7 +1341,7 @@ async function drawParcelTable(){
  $("clearParcelFilter").style.display=isFiltering?"inline":"none";
  const lim=isFiltering?100:15;
  $("parcelEmpty").style.display="none";
- $("parcelBody").innerHTML='<tr><td colspan="3"><div class="loadingRow"><span class="spinner"></span>Loadingâ€¦</div></td></tr>';
+ $("parcelBody").innerHTML='<tr><td colspan="3"><div class="loadingRow"><span class="spinner"></span>Loading...</div></td></tr>';
  const {idField,rows}=await getJ(`/stats/parcels?layer=${encodeURIComponent(currentLayer)}&limit=${lim}${qc()}${fp}`);
  currentIdField=idField||"ogc_fid";
  $("parcelColHead").textContent=isStaff()?"Feature":"Feature ID";
@@ -1399,7 +1399,7 @@ function downloadBlob(filename,mime,text){
 $("exportCsvBtn").onclick=async()=>{
  if(!currentLayer)return say("Select a layer first",true);
  const btn=$("exportCsvBtn"),orig=btn.textContent;
- btn.disabled=true;btn.textContent="Exportingâ€¦";
+ btn.disabled=true;btn.textContent="Exporting...";
  logEvent("export.csv",prettyLayerName(currentLayer,currentLayer));
  try{
   const fp=parcelFilterParams();
@@ -1415,7 +1415,7 @@ $("exportCsvBtn").onclick=async()=>{
 $("printReportBtn").onclick=async()=>{
  if(!currentLayer)return say("Select a layer first",true);
  const btn=$("printReportBtn"),orig=btn.textContent;
- btn.disabled=true;btn.textContent="Preparingâ€¦";
+ btn.disabled=true;btn.textContent="Preparing...";
  logEvent("report.print",prettyLayerName(currentLayer,currentLayer));
  try{
   const layerName=prettyLayerName(currentLayer,currentLayer);
@@ -1427,7 +1427,7 @@ $("printReportBtn").onclick=async()=>{
   const rowsHtml=rows.map(r=>`<tr><td>${r.label}</td><td>${r.county||""}</td><td style="text-align:right">${Math.round(r.area_acres).toLocaleString()}</td></tr>`).join("");
   const natRowsHtml=nat?nat.labels.map((l,i)=>`<tr><td><span style="display:inline-block;width:10px;height:10px;background:${nat.colors[i]};border-radius:2px;margin-right:6px"></span>${l}</td><td style="text-align:right">${Math.round(nat.data[i]).toLocaleString()} ac</td><td style="text-align:right">${nat.totalAcres?((nat.data[i]/nat.totalAcres)*100).toFixed(1):"0.0"}%</td></tr>`).join(""):"";
   const w=window.open("","_blank");
-  w.document.write(`<!DOCTYPE html><html><head><title>${layerName} â€” LLA Land Information Report</title>
+  w.document.write(`<!DOCTYPE html><html><head><title>${layerName} - LLA Land Information Report</title>
   <style>
    body{font-family:"Segoe UI",system-ui,sans-serif;color:#111827;margin:30px}
    h1{color:#0b2545;font-size:22px;margin-bottom:2px}
@@ -1442,8 +1442,8 @@ $("printReportBtn").onclick=async()=>{
    img{max-width:340px;display:block;margin:8px 0}
    @media print{button{display:none}}
   </style></head><body>
-  <h1>LLA Land Information Dashboard â€” Report</h1>
-  <div class="meta">Layer: <b>${layerName}</b> &nbsp;|&nbsp; Generated ${new Date().toLocaleString()} by ${myEmail||"â€”"}${selectedCounty?` &nbsp;|&nbsp; County filter: <b>${selectedCounty}</b>`:""}</div>
+  <h1>LLA Land Information Dashboard - Report</h1>
+  <div class="meta">Layer: <b>${layerName}</b> &nbsp;|&nbsp; Generated ${new Date().toLocaleString()} by ${myEmail||"-"}${selectedCounty?` &nbsp;|&nbsp; County filter: <b>${selectedCounty}</b>`:""}</div>
   <div class="kpis">
    <div class="kpi"><b>${$("cParcels").textContent}</b>Parcels</div>
    <div class="kpi"><b>${$("cAcres").textContent}</b>Acres</div>
@@ -1452,7 +1452,7 @@ $("printReportBtn").onclick=async()=>{
   ${byImg?`<img src="${byImg}">`:""}
   <h2>Top features by area${fp?" (filtered)":""}</h2>
   <table><thead><tr><th>Feature</th><th>County</th><th style="text-align:right">Acres</th></tr></thead><tbody>${rowsHtml}</tbody></table>
-  ${nat?`<h2>National totals â€” all layers</h2>
+  ${nat?`<h2>National totals - all layers</h2>
   <div class="kpis">
    <div class="kpi"><b>${nat.totalParcels.toLocaleString()}</b>Total parcels</div>
    <div class="kpi"><b>${Math.round(nat.totalAcres).toLocaleString()}</b>Total acres</div>
@@ -1540,7 +1540,7 @@ async function afterLogin(){
  await loadFeatureFlags();
  startHeartbeat();
  await loadLayerList();
- if(me.must_setup_2fa) say("Two-factor authentication is required for your account - set it up under ðŸ”’ Security.",true);
+ if(me.must_setup_2fa) say("Two-factor authentication is required for your account - set it up under  Security.",true);
 }
 $("authForm").onsubmit=async(e)=>{
  e.preventDefault();
@@ -1719,7 +1719,7 @@ async function loadUsers(){
 }
 $("usersBtn").onclick=()=>{const m=$("users");const open=m.style.display!=="block";m.style.display=open?"block":"none";if(open)loadUsers().catch(e=>say("Could not load users: "+e.message,true))};
 async function loadFeatures(){
- const box=$("featureList");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loadingâ€¦</div>';
+ const box=$("featureList");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading...</div>';
  const data=await getJ("/features");
  featureFlags=data.features||{};
  box.textContent="";
@@ -1744,7 +1744,7 @@ async function loadFeatures(){
 $("featuresBtn").onclick=()=>{const m=$("features");const open=m.style.display!=="block";m.style.display=open?"block":"none";if(open)loadFeatures().catch(e=>say("Could not load feature settings: "+e.message,true))};
 $("featuresClose").onclick=()=>{$("features").style.display="none"};
 async function loadImportHistory(){
- const box=$("importHistoryList");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loadingâ€¦</div>';
+ const box=$("importHistoryList");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading...</div>';
  try{
   const rows=await getJ("/admin/import-history");
   box.textContent="";
@@ -1763,7 +1763,7 @@ $("upSubmit").onclick=async()=>{
  const layerName=$("upLayerName").value.trim(),mode=$("upMode").value,file=$("upFile").files[0];
  if(!layerName)return say("Enter a layer name (schema.table)",true);
  if(!file)return say("Choose a .zip file first",true);
- const btn=$("upSubmit"),orig=btn.textContent;btn.disabled=true;btn.textContent="Uploadingâ€¦";
+ const btn=$("upSubmit"),orig=btn.textContent;btn.disabled=true;btn.textContent="Uploading...";
  $("upResult").textContent="";
  try{
   const fd=new FormData();fd.append("file",file);
@@ -1814,7 +1814,7 @@ $("secDisableBtn").onclick=async()=>{
 };
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 async function loadActivity(){
- const box=$("actList");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loadingâ€¦</div>';
+ const box=$("actList");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading...</div>';
  const rows=await getJ("/activity?limit=150");
  box.textContent="";
  if(!rows.length){box.innerHTML='<div style="color:#888;text-align:center;padding:14px 0">No activity recorded yet</div>';return}
@@ -1822,7 +1822,7 @@ async function loadActivity(){
   const div=document.createElement("div");div.className="actRow";
   const when=r.created_at?new Date(r.created_at).toLocaleString():"";
   div.innerHTML=`<span class="actAction">${esc(r.action)}</span><span class="actWhen">${esc(when)}</span>`+
-   `<span class="actDetail">${esc(r.actor_email||"â€”")}${r.ip_address?" Â· "+esc(r.ip_address):""}${r.detail?" Â· "+esc(r.detail):""}</span>`;
+   `<span class="actDetail">${esc(r.actor_email||"-")}${r.ip_address?" Â· "+esc(r.ip_address):""}${r.detail?" Â· "+esc(r.detail):""}</span>`;
   box.appendChild(div);
  });
 }
@@ -1833,12 +1833,12 @@ function fmtMinutes(m){
  return h+"h"+(mm?" "+mm+"m":"");
 }
 async function loadAnalytics(){
- $("anOnline").textContent="â€¦";
+ $("anOnline").textContent="...";
  const data=await getJ("/activity/analytics?days=30");
  $("anOnline").textContent=data.online_now.length;
  $("anUsers").textContent=data.unique_users;
  $("anEvents").textContent=data.total_events.toLocaleString();
- $("anTopResource").textContent=(data.resource_counts[0]&&data.resource_counts[0].action)||"â€”";
+ $("anTopResource").textContent=(data.resource_counts[0]&&data.resource_counts[0].action)||"-";
 
  const top=data.resource_counts.slice(0,10);
  resourceChart&&resourceChart.destroy();
@@ -1856,10 +1856,10 @@ async function loadAnalytics(){
  if(!data.per_user.length){body.innerHTML='<tr><td colspan="6" style="text-align:center;color:#888;padding:10px 0">No visits recorded yet</td></tr>';return}
  data.per_user.forEach(u=>{
   const tr=document.createElement("tr");
-  const when=u.last_seen?new Date(u.last_seen).toLocaleString():"â€”";
+  const when=u.last_seen?new Date(u.last_seen).toLocaleString():"-";
   tr.innerHTML=`<td>${u.online_now?'<span class="onlineDot"></span>':""}${esc(u.email)}</td>`+
    `<td class="num">${u.sessions}</td><td class="num">${fmtMinutes(u.total_minutes)}</td>`+
-   `<td>${esc(when)}</td><td>${esc(u.top_resource||"â€”")}</td><td>${esc(u.ip_address||"â€”")}</td>`;
+   `<td>${esc(when)}</td><td>${esc(u.top_resource||"-")}</td><td>${esc(u.ip_address||"-")}</td>`;
   body.appendChild(tr);
  });
 }
@@ -1875,7 +1875,7 @@ $("actTabOverview").onclick=()=>{showActTab("overview");loadAnalytics().catch(e=
 $("actTabLog").onclick=()=>{showActTab("log");loadActivity().catch(e=>say("Could not load activity: "+e.message,true));};
 $("actTabOverlap").onclick=()=>{showActTab("overlap")};
 async function runOverlapCheck(){
- const box=$("overlapResult");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Checking every layer for overlapsâ€¦</div>';
+ const box=$("overlapResult");box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Checking every layer for overlaps...</div>';
  try{
   const data=await getJ("/stats/overlaps?limit=200");
   if(!data.pairs.length){box.innerHTML='<div style="color:#16a34a;padding:8px 0">No overlaps found across '+data.checked_layers.length+' layers.</div>';return}
@@ -1917,7 +1917,7 @@ async function openCompare(){
  $("compare").style.display="block";
  $("compareResults").innerHTML="";
  const box=$("compareCounties");
- box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading countiesâ€¦</div>';
+ box.innerHTML='<div class="loadingRow"><span class="spinner"></span>Loading counties...</div>';
  try{
   const names=await getAllCountyNames();
   box.innerHTML="";
@@ -1938,8 +1938,8 @@ let compareChart;
 $("compareRun").onclick=async()=>{
  const counties=[..._selectedCounties];
  if(counties.length<2)return say("Pick at least 2 counties to compare",true);
- const btn=$("compareRun"),orig=btn.textContent;btn.disabled=true;btn.textContent="Comparingâ€¦";
- $("compareResults").innerHTML='<div class="loadingRow"><span class="spinner"></span>Crunching numbersâ€¦</div>';
+ const btn=$("compareRun"),orig=btn.textContent;btn.disabled=true;btn.textContent="Comparing...";
+ $("compareResults").innerHTML='<div class="loadingRow"><span class="spinner"></span>Crunching numbers...</div>';
  logEvent("tool.compare_counties",counties.join(", "));
  try{
   const matrix=await Promise.all(_shownLayers.map(l=>
@@ -1993,7 +1993,7 @@ $("uBulkApprove").onclick=async()=>{
  const ids=[...document.querySelectorAll(".uSel")].filter(b=>b.checked).map(b=>b.dataset.id);
  const targets=ids.map(id=>_usersCache.find(u=>String(u.id)===id)).filter(u=>u&&!u.is_approved);
  if(!targets.length)return;
- const btn=$("uBulkApprove");btn.disabled=true;const orig=btn.textContent;btn.textContent="Approvingâ€¦";
+ const btn=$("uBulkApprove");btn.disabled=true;const orig=btn.textContent;btn.textContent="Approving...";
  try{
   const results=await Promise.allSettled(targets.map(u=>fetch(`${API}/users/${u.id}/approve`,{method:"PUT",headers:H()}).then(r=>{if(!r.ok)throw new Error(u.email)})));
   const failed=results.filter(r=>r.status==="rejected").length;
@@ -2006,7 +2006,7 @@ $("uBulkDelete").onclick=async()=>{
  const targets=ids.map(id=>_usersCache.find(u=>String(u.id)===id)).filter(Boolean);
  if(!targets.length)return;
  if(!confirm(`Delete ${targets.length} user(s)?\n\n${targets.map(u=>u.email).join("\n")}`))return;
- const btn=$("uBulkDelete");btn.disabled=true;const orig=btn.textContent;btn.textContent="Deletingâ€¦";
+ const btn=$("uBulkDelete");btn.disabled=true;const orig=btn.textContent;btn.textContent="Deleting...";
  try{
   const results=await Promise.allSettled(targets.map(u=>fetch(`${API}/users/${u.id}`,{method:"DELETE",headers:H()}).then(r=>{if(!r.ok)throw new Error(u.email)})));
   const failed=results.filter(r=>r.status==="rejected").length;
@@ -2022,4 +2022,5 @@ $("uAdd").onclick=async()=>{
 };
 </script>
 </body></html>
+
 
