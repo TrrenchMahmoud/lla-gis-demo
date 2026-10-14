@@ -901,7 +901,7 @@ $("occRun").onclick=async()=>{
 
 const LOGIN_MSG="";
 const COLORS=["#3b82f6","#ef4444","#10b981","#f59e0b","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#6366f1"];
-const LAYER_LABELS={eegd:"Eleemosynary",plsd:"Public Land",dgd:"Development Grant",sgld:"Government Land",scld:"Customary Land"};
+const LAYER_LABELS={lla_dgd:"Development Grant Deed",lla_eegd:"Eleemosynary Grant Deed",lla_plsd:"Public Land Sale Deed",lla_prvl:"Private Land Sale Deed",lla_scld:"Statutory Customary Land Deed",lla_sgld:"Statutory Government Land Deed",dgd:"Development Grant Deed",eegd:"Eleemosynary Grant Deed",plsd:"Public Land Sale Deed",prvl:"Private Land Sale Deed",scld:"Statutory Customary Land Deed",sgld:"Statutory Government Land Deed"};
 const NAME_COLS=new Set(["name","label","parcel_name","title"]);
 function prettyLayerName(id,fallback){
  const table=(id||"").split(".").pop();
@@ -2022,5 +2022,6 @@ $("uAdd").onclick=async()=>{
 };
 </script>
 </body></html>
+
 
 
