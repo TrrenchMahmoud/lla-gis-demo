@@ -18,7 +18,11 @@ FEATURE_LABELS: dict[str, str] = {
     "overlap_report": "Overlap / duplicate detection report",
     "data_upload": "Admin data upload (CSV / shapefile)",
     "public_view": "Public read-only map (no login)",
-    "require_2fa_admins": "Require two-factor login for admins",
+    # "require_2fa_admins" removed at the operator's request (2026-10-23): 2FA enforcement is
+    # no longer offered as a toggle. See main.py's /me (must_setup_2fa is hardcoded False) and
+    # index.html (the Security button is hidden). The underlying /2fa/* endpoints and the
+    # /login/2fa step are left in place so anyone who had already turned on personal 2FA keeps
+    # working and isn't locked out.
     "map_export": "Cartographic map export (image)",
     "bookmarks": "Saved map views / bookmarks",
     "my_location": "\"My location\" GPS button",

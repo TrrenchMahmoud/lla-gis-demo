@@ -71,7 +71,14 @@ body.authed #locSearchBox{display:block;top:98px}
 #locSearchResults div{padding:8px 12px;font-size:12.5px;border-bottom:1px solid #f0f0f0;cursor:pointer}
 #locSearchResults div:hover{background:#f3f6fb}
 #locSearchResults div:last-child{border-bottom:0}
-#status{display:none;position:absolute;top:82px;left:50%;transform:translateX(-50%);z-index:5;padding:8px 14px;border-radius:6px;font-size:13px}
+#status{display:none;position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 40px 12px 16px;border-radius:8px;font-size:14px;font-weight:600;box-shadow:0 8px 28px rgba(11,37,69,.4);max-width:90vw;border-left:5px solid transparent;line-height:1.4}
+#status:not(.err){background:#e0f2fe;color:#0c4a6e;border-left-color:#0284c7}
+#status.err{background:#fee2e2;color:#7f1d1d;border-left-color:#dc2626}
+#status .statusClose{position:absolute;top:6px;right:8px;cursor:pointer;background:none;border:0;font-size:17px;color:inherit;opacity:.55;line-height:1;padding:2px 6px}
+#status .statusClose:hover{opacity:1}
+#uploadProgress{display:none;margin-top:8px;padding:10px 12px;background:#eef6ff;border-radius:6px;border-left:4px solid var(--navy3,#1d4e89);font-size:12.5px;color:#0c4a6e}
+#uploadProgress .spin{display:inline-block;width:12px;height:12px;border:2px solid #0284c7;border-top-color:transparent;border-radius:50%;margin-right:7px;vertical-align:-2px;animation:uploadspin 0.8s linear infinite}
+@keyframes uploadspin{to{transform:rotate(360deg)}}
 #legend{display:none;position:absolute;top:12px;left:12px;z-index:5;width:340px;max-height:86vh;overflow:auto;background:#fff;border-radius:10px;box-shadow:0 4px 18px rgba(11,37,69,.22);padding:14px;font-size:13px;box-sizing:border-box;border-top:3px solid var(--gold)}
 body.authed #legend{top:86px}
 /* Move the map's zoom +/- control out from behind the left sidebar once it's showing.
@@ -263,7 +270,7 @@ body.dark .natNote,body.dark .note{color:#93a3ba}
   <button id="featuresBtn" style="display:none" type="button">
     <span aria-hidden="true">⚙</span> Features
   </button>
-  <button id="securityBtn" type="button">
+  <button id="securityBtn" type="button" style="display:none">
     <span aria-hidden="true">▣</span> Security
   </button>
   <button id="logoutBtn" type="button">Log out</button>
@@ -406,6 +413,7 @@ body.dark .natNote,body.dark .note{color:#93a3ba}
  <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin:8px 0 3px">Shapefile (.zip)</label>
  <input id="upFile" type="file" accept=".zip">
  <button id="upSubmit" style="width:100%;margin-top:10px">Upload</button>
+ <div id="uploadProgress"><span class="spin"></span><span id="uploadProgressText">Uploading...</span></div>
  <div id="upResult" style="margin-top:10px;font-size:12px"></div>
  <h4 style="margin:16px 0 4px;font-size:13px;color:var(--navy)">Import history</h4>
  <div id="importHistoryList" style="max-height:160px;overflow:auto;font-size:11.5px"></div>
@@ -546,7 +554,21 @@ const $=id=>document.getElementById(id);
   try{localStorage.setItem("darkMode",on?"1":"0");}catch(e){}
  };
 })();
-const say=(t,err)=>{const s=$("status");s.textContent=t;s.style.display=t?"block":"none";s.style.background=err?"#fee2e2":"#e0f2fe"};
+let _statusTimer=null;
+const say=(t,err)=>{
+ const s=$("status");
+ clearTimeout(_statusTimer);
+ if(!t){s.style.display="none";return;}
+ s.innerHTML="";
+ const msg=document.createElement("span");msg.textContent=t;s.appendChild(msg);
+ const close=document.createElement("button");close.type="button";close.className="statusClose";
+ close.setAttribute("aria-label","Dismiss");close.innerHTML="&times;";
+ close.onclick=()=>{s.style.display="none";};
+ s.appendChild(close);
+ s.className=err?"err":"";
+ s.style.display="block";
+ if(!err)_statusTimer=setTimeout(()=>{s.style.display="none";},6000);
+};
 const authSay=(t,err)=>{const m=$("authMsg");m.textContent=t||"";m.className=err?"":"ok"};
 const H=()=>({Authorization:`Bearer ${token}`});
 let _inflight=0;
@@ -1150,6 +1172,21 @@ async function loadLayerList(){
     const vc=document.createElement("input");vc.type="checkbox";vc.checked=viewers.has(l.id);
     vc.onchange=async()=>{const r=await fetch(`${API}/layers/access/${l.id}?viewers=${vc.checked}`,{method:"PUT",headers:H()});if(!r.ok){vc.checked=!vc.checked;say("Could not change access",true)}};
     v.append(vc," Viewers");row.append(v);
+    const del=document.createElement("button");del.textContent="Delete";del.className="urow-del";del.title="Permanently remove this layer";
+    del.onclick=async()=>{
+     const typed=prompt(`This permanently deletes the layer "${l.id}" and all its data. This cannot be undone.\n\nType the layer name to confirm:`);
+     if(typed===null)return;
+     if(typed.trim()!==l.id){say("Layer name didn't match - nothing was deleted",true);return}
+     del.disabled=true;
+     try{
+      const r=await fetch(`${API}/admin/layers/${encodeURIComponent(l.id)}`,{method:"DELETE",headers:H()});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok){say(j.detail||"Could not delete the layer",true);del.disabled=false;return}
+      say(`Deleted layer "${l.id}".`,false);
+      loadLayerList();
+     }catch(e){say("Could not delete the layer: "+e.message,true);del.disabled=false;}
+    };
+    row.append(del);
    }
    box.appendChild(row);
    renderMapLayer(l.id,color,true);
@@ -1779,24 +1816,44 @@ async function loadImportHistory(){
 }
 $("uploadBtn").onclick=()=>{const m=$("upload");const open=m.style.display!=="block";m.style.display=open?"block":"none";if(open)loadImportHistory();};
 $("uploadClose").onclick=()=>{$("upload").style.display="none"};
-$("upSubmit").onclick=async()=>{
+$("upSubmit").onclick=()=>{
  const layerName=$("upLayerName").value.trim(),mode=$("upMode").value,file=$("upFile").files[0];
  if(!layerName)return say("Enter a layer name (schema.table)",true);
  if(!file)return say("Choose a .zip file first",true);
  const btn=$("upSubmit"),orig=btn.textContent;btn.disabled=true;btn.textContent="Uploading...";
  $("upResult").textContent="";
- try{
-  const fd=new FormData();fd.append("file",file);
-  const url=`${API}/admin/upload-shapefile?layer_name=${encodeURIComponent(layerName)}&mode=${encodeURIComponent(mode)}`;
-  const r=await fetch(url,{method:"POST",headers:H(),body:fd});
-  const j=await r.json().catch(()=>({}));
-  if(!r.ok){$("upResult").innerHTML=`<span style="color:#c0392b">${esc(j.detail||"Upload failed")}</span>`;return}
+ const prog=$("uploadProgress"),progText=$("uploadProgressText");
+ prog.style.display="block";progText.textContent=`Uploading ${esc(file.name)} - 0%`;
+ say(`Importing "${layerName}" - this can take a moment for large files...`,false);
+
+ const fd=new FormData();fd.append("file",file);
+ const url=`${API}/admin/upload-shapefile?layer_name=${encodeURIComponent(layerName)}&mode=${encodeURIComponent(mode)}`;
+ const xhr=new XMLHttpRequest();
+ xhr.open("POST",url);
+ xhr.setRequestHeader("Authorization",`Bearer ${token}`);
+ xhr.upload.onprogress=(ev)=>{
+  if(!ev.lengthComputable)return;
+  const pct=Math.round((ev.loaded/ev.total)*100);
+  progText.textContent=pct<100?`Uploading ${esc(file.name)} - ${pct}%`:`Processing "${esc(layerName)}" on the server - almost done...`;
+ };
+ const finish=()=>{btn.disabled=false;btn.textContent=orig;prog.style.display="none";};
+ xhr.onload=()=>{
+  finish();
+  let j={};try{j=JSON.parse(xhr.responseText);}catch(e){}
+  if(xhr.status<200||xhr.status>=300){
+   const msg=j.detail||"Upload failed";
+   $("upResult").innerHTML=`<span style="color:#c0392b">${esc(msg)}</span>`;
+   say(`Layer import failed: ${msg}`,true);
+   return;
+  }
   $("upResult").innerHTML=`<span style="color:#16a34a">Loaded ${j.feature_count} feature(s) into ${esc(j.layer)}.</span>`;
+  say(`Loaded ${j.feature_count} feature(s) into "${j.layer}".`,false);
   $("upFile").value="";
   loadImportHistory();
   loadLayerList();
- }catch(e){$("upResult").innerHTML=`<span style="color:#c0392b">${esc(e.message)}</span>`;}
- finally{btn.disabled=false;btn.textContent=orig;}
+ };
+ xhr.onerror=()=>{finish();$("upResult").innerHTML=`<span style="color:#c0392b">Network error during upload</span>`;say("Network error during upload",true);};
+ xhr.send(fd);
 };
 async function loadSecurity(){
  const me=await(await fetch(`${API}/me`,{headers:H()})).json();

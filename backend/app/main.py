@@ -25,7 +25,7 @@ from .auth import (authenticate_user, create_access_token, create_mfa_token, cre
 from .config import settings
 from .database import Base, SessionLocal, engine, get_db
 from .features import FEATURE_LABELS, all_flags, is_enabled, require_feature
-from .layers import layer_allowed, router as layers_router
+from .layers import LayerAccess, layer_allowed, router as layers_router
 from .mailer import send_password_reset_email, send_verification_email
 from .models import ActivityLog, FeatureFlag, Role, User
 from .schemas import (ActivityEvent, ForgotPassword, LoginResult, ResetPassword, Token, TotpCode, UserCreate,
@@ -224,8 +224,11 @@ def reset_password(payload: ResetPassword, request: Request, db: Session = Depen
 @app.get("/me")
 def me(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     out = UserOut.model_validate(user).model_dump()
-    out["must_setup_2fa"] = (user.role in STAFF_ROLES and not user.totp_enabled
-                              and is_enabled(db, "require_2fa_admins"))
+    # Two-factor enforcement was removed at the operator's request - nobody is nagged or
+    # forced into 2FA setup any more. Anyone who had already enabled personal 2FA keeps it
+    # (their login still works via /login/2fa) and can still turn it off from the Security
+    # panel if it's ever re-enabled in the UI; this just stops anyone being *required* to.
+    out["must_setup_2fa"] = False
     return out
 
 
@@ -553,6 +556,35 @@ async def upload_shapefile(layer_name: str, request: Request, file: UploadFile =
     count = db.execute(text(f'SELECT COUNT(*) FROM "public"."{table}"')).scalar()
     log_activity(db, admin.email, "layer.import", f"{layer_name} ({mode}, {count} features)", client_ip(request))
     return {"layer": layer_name, "mode": mode, "feature_count": int(count)}
+
+
+@app.delete("/admin/layers/{layer_name}", status_code=200)
+def delete_layer(layer_name: str, request: Request, db: Session = Depends(get_db),
+                  admin: User = Depends(require_role(Role.super_admin))):
+    """Permanently removes a spatial layer: drops its table from the public schema, clears any
+    per-layer viewer-access row and the column/geometry caches, and logs it. Destructive and
+    irreversible (short of restoring a backup), so this is super-admin only, mirrors the same
+    layer_name validation the upload endpoint uses. The frontend also makes the caller type the
+    exact layer name back before sending this request, so a careless click can't wipe the
+    wrong table."""
+    if not LAYER_RE.match(layer_name):
+        raise HTTPException(400, "Layer name must look like schema.table, e.g. public.old_layer")
+    schema, table = layer_name.split(".", 1)
+    if schema != "public":
+        raise HTTPException(400, "Only the public schema is supported")
+    known = {f"{s}.{t}" for s, t in known_layers(db)}
+    if layer_name not in known:
+        raise HTTPException(404, "No such layer")
+
+    db.execute(text(f'DROP TABLE IF EXISTS "public"."{table}" CASCADE'))
+    access_row = db.get(LayerAccess, layer_name)
+    if access_row:
+        db.delete(access_row)
+    db.commit()
+    _GEOM_COL_CACHE.pop(layer_name, None)
+    _COLS_CACHE.pop(layer_name, None)
+    log_activity(db, admin.email, "layer.delete", layer_name, client_ip(request))
+    return {"layer": layer_name, "deleted": True}
 
 
 @app.get("/admin/import-history")
